@@ -78,7 +78,7 @@ model Order {
   buyerLat         Decimal     @map("buyer_lat") @db.Decimal(10, 7)
   buyerLng         Decimal     @map("buyer_lng") @db.Decimal(10, 7)
   createdAt        DateTime    @default(now()) @map("created_at")
-  updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at")
+  updatedAt        DateTime    @default(now()) @map("updated_at")
 
   buyer            User        @relation("BuyerOrders", fields: [userId], references: [id])
   driver           User?       @relation("DriverOrders", fields: [driverId], references: [id])
