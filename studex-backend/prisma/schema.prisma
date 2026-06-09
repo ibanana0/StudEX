@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  DRIVER
+  ADMIN
+}
+
+enum OrderStatus {
+  MENCARI_DRIVER
+  DIPROSES_DRIVER
+  DALAM_PERJALANAN
+  DRIVER_SAMPAI
+  PESANAN_TIBA
+  COMPLETED
+  CANCELLED
+}
+
+enum CancelledBy {
+  USER
+  SYSTEM
+}
+
+model User {
+  id                 Int            @id @default(autoincrement())
+  name               String
+  email              String         @unique
+  googleId           String?        @unique @map("google_id")
+  profilePic         String?        @map("profile_pic")
+  phoneNumber        String?        @map("phone_number")
+  role               Role           @default(USER)
+  isDriverVerified   Boolean        @default(false) @map("is_driver_verified")
+  createdAt          DateTime       @default(now()) @map("created_at")
+
+  driverProfile      DriverProfile?
+  ordersAsBuyer      Order[]        @relation("BuyerOrders")
+  ordersAsDriver     Order[]        @relation("DriverOrders")
+  ratingsGiven       Rating[]       @relation("RatingsGiven")
+  ratingsReceived    Rating[]       @relation("RatingsReceived")
+
+  @@map("users")
+}
+
+model DriverProfile {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique @map("user_id")
+  ktmUrl     String   @map("ktm_url")
+  qrisUrl    String   @map("qris_url")
+  isActive   Boolean  @default(false) @map("is_active")
+  avgRating  Decimal  @default(0.00) @map("avg_rating") @db.Decimal(3, 2)
+  totalTrips Int      @default(0) @map("total_trips")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("driver_profiles")
+}
+
+model Order {
+  id               Int         @id @default(autoincrement())
+  userId           Int         @map("user_id")
+  driverId         Int?        @map("driver_id")
+  shopName         String      @map("shop_name")
+  itemsDescription Json        @map("items_description")
+  notes            String?
+  estItemPrice     Decimal     @map("est_item_price") @db.Decimal(10, 2)
+  deliveryFee      Decimal     @map("delivery_fee") @db.Decimal(10, 2)
+  totalPrice       Decimal     @map("total_price") @db.Decimal(10, 2)
+  status           OrderStatus @default(MENCARI_DRIVER)
+  cancelledBy      CancelledBy? @map("cancelled_by")
+  cancelReason     String?     @map("cancel_reason")
+  buyerLat         Decimal     @map("buyer_lat") @db.Decimal(10, 7)
+  buyerLng         Decimal     @map("buyer_lng") @db.Decimal(10, 7)
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at")
+
+  buyer            User        @relation("BuyerOrders", fields: [userId], references: [id])
+  driver           User?       @relation("DriverOrders", fields: [driverId], references: [id])
+  ratings          Rating[]
+
+  @@index([status])
+  @@index([driverId])
+  @@index([userId])
+  @@index([updatedAt])
+  @@map("orders")
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  fromUser  Int      @map("from_user")
+  toUser    Int      @map("to_user")
+  score     Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  giver     User     @relation("RatingsGiven", fields: [fromUser], references: [id])
+  receiver  User     @relation("RatingsReceived", fields: [toUser], references: [id])
+
+  @@unique([orderId, fromUser])
+  @@map("ratings")
+}
