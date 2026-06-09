@@ -43,23 +43,5 @@ services:
       postgres:
         condition: service_healthy
 
-  # ─── Frontend (dev) ───────────────────────────────────────────────────────
-  frontend:
-    build:
-      context: ./studex-frontend
-      dockerfile: Dockerfile.dev
-    container_name: studEX_frontend
-    restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_API_URL:          http://localhost:3001
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./studex-frontend/src:/app/src
-      - ./studex-frontend/public:/app/public
-    depends_on:
-      - backend
-
 volumes:
   postgres_data:
