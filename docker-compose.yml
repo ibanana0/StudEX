@@ -1,0 +1,65 @@
+services:
+
+  # ─── PostgreSQL ───────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: studEX_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB:       ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Backend (dev) ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./studex-backend
+      dockerfile: Dockerfile.dev
+    container_name: studEX_backend
+    restart: unless-stopped
+    environment:
+      PORT:            3001
+      NODE_ENV:        development
+      DATABASE_URL:    postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      JWT_SECRET:      ${JWT_SECRET}
+      JWT_EXPIRES_IN:  ${JWT_EXPIRES_IN}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      FRONTEND_URL:    http://localhost:3000
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./studex-backend/src:/app/src
+      - ./studex-backend/prisma:/app/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─── Frontend (dev) ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./studex-frontend
+      dockerfile: Dockerfile.dev
+    container_name: studEX_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL:          http://localhost:3001
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./studex-frontend/src:/app/src
+      - ./studex-frontend/public:/app/public
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

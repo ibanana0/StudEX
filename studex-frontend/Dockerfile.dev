@@ -1,0 +1,10 @@
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+EXPOSE 3000
+
+# src/ di-mount sebagai volume dari docker-compose — hot reload bawaan Next.js
+CMD ["npm", "run", "dev"]
