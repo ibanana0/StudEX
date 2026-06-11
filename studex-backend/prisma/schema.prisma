@@ -29,11 +29,16 @@ enum CancelledBy {
 
 model User {
   id                 Int            @id @default(autoincrement())
+  username           String?        @unique
   name               String
   email              String         @unique
+  password           String?
   googleId           String?        @unique @map("google_id")
   profilePic         String?        @map("profile_pic")
   phoneNumber        String?        @map("phone_number")
+  fakultas           String?
+  jurusan            String?
+  universitas        String?
   role               Role           @default(USER)
   isDriverVerified   Boolean        @default(false) @map("is_driver_verified")
   createdAt          DateTime       @default(now()) @map("created_at")
