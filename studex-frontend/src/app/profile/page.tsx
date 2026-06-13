@@ -1,16 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Role } from '@/types/user';
 
 import { Header } from '@/components/home';
 import BottomNav from '@/components/ui/BottomNav';
-import { ProfileCard, ModeToggle, ModeSwitchModal } from '@/components/profile';
+import { ProfileCard, ModeToggle, ModeSwitchModal, DriverCTACard } from '@/components/profile';
 import { DUMMY_PROFILE } from '@/dummy_payload/profile';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [currentRole, setCurrentRole] = useState<Role>(DUMMY_PROFILE.role);
   const [pendingRole, setPendingRole] = useState<Role | null>(null);
 
@@ -54,8 +56,16 @@ export default function ProfilePage() {
           />
         </div>
 
-        <div className="pt-1">
+        <div className="pt-1 space-y-4">
           <ModeToggle currentRole={currentRole} onToggle={handleToggle} />
+
+          {/* Driver CTA — only show when user does NOT have a driver account */}
+          {!DUMMY_PROFILE.hasDriverAccount && (
+            <DriverCTACard onClick={() => router.push('/profile/daftar-driver')} />
+          )}
+
+          {/* TODO [AUTH]: When hasDriverAccount is true and user is a verified driver,
+              you may show a "Kelola Akun Driver" or "Dashboard Driver" card instead. */}
         </div>
 
         {/* Push logout to bottom */}

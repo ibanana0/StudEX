@@ -8,6 +8,12 @@ import { useOrderPolling } from '@/hooks/useOrderPolling';
 import { formatRupiah, formatDate } from '@/lib/utils';
 import api from '@/utils/api';
 import type { OrderStatus } from '@/types';
+import { DUMMY_ORDER } from '@/dummy_payload/order';
+
+// To test with dummy data, replace `useOrderPolling` result:
+//   const order = DUMMY_ORDER;
+//   const isLoading = false;
+//   const isError = false;
 
 // ── Status display config ────────────────────────────────────────────────────
 
@@ -152,7 +158,7 @@ export default function OrderDetailPage({
 
   return (
     <>
-      <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto">
+      <div className="min-h-screen bg-background flex flex-col w-[430px] mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b sticky top-0 bg-background z-10">
           <button

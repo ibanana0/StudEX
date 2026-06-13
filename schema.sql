@@ -44,9 +44,7 @@ CREATE TABLE orders (
     items_description JSONB         NOT NULL,
     -- Struktur wajib: [{"name": "...", "qty": 1, "note": "..."}]
     notes             TEXT,
-    est_item_price    NUMERIC(10,2) NOT NULL,
-    delivery_fee      NUMERIC(10,2) NOT NULL CHECK (delivery_fee >= 1000),
-    total_price       NUMERIC(10,2) NOT NULL,
+    -- Pembayaran P2P face-to-face via QRIS; tidak ada kolom harga di sistem.
     status            VARCHAR(50)   NOT NULL DEFAULT 'MENCARI_DRIVER',
     -- MENCARI_DRIVER → DIPROSES_DRIVER → DALAM_PERJALANAN
     -- → DRIVER_SAMPAI → PESANAN_TIBA → COMPLETED
@@ -71,9 +69,6 @@ CREATE TABLE orders (
     CONSTRAINT cancelled_fields CHECK (
         (status = 'CANCELLED' AND cancelled_by IS NOT NULL)
         OR (status != 'CANCELLED' AND cancelled_by IS NULL)
-    ),
-    CONSTRAINT total_price_check CHECK (
-        total_price = est_item_price + delivery_fee
     )
 );
 

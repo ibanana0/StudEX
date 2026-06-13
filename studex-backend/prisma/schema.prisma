@@ -74,9 +74,7 @@ model Order {
   shopName         String      @map("shop_name")
   itemsDescription Json        @map("items_description")
   notes            String?
-  estItemPrice     Decimal     @map("est_item_price") @db.Decimal(10, 2)
-  deliveryFee      Decimal     @map("delivery_fee") @db.Decimal(10, 2)
-  totalPrice       Decimal     @map("total_price") @db.Decimal(10, 2)
+  // Pembayaran P2P face-to-face via QRIS; tidak ada kolom harga di sistem.
   status           OrderStatus @default(MENCARI_DRIVER)
   cancelledBy      CancelledBy? @map("cancelled_by")
   cancelReason     String?     @map("cancel_reason")
