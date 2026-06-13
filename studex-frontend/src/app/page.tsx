@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
 import {
   Header,
   GreetingSection,
@@ -25,11 +24,6 @@ export default function HomePage() {
 
   const [isOnline, setIsOnline] = useState(false);
 
-  const handleAcceptOrder = (id: number) => {
-    // TODO [API]: POST /orders/:id/accept
-    toast.success(`Orderan #${id} berhasil diambil`);
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-white w-[430px] mx-auto relative">
       {/* ── Main Scrollable Content ── */}
@@ -51,10 +45,7 @@ export default function HomePage() {
               <h2 className="text-xl font-bold font-bitter text-[#1B1B24]">
                 Orderan Tersedia
               </h2>
-              <AvailableOrdersList
-                orders={DUMMY_AVAILABLE_ORDERS}
-                onAccept={handleAcceptOrder}
-              />
+              <AvailableOrdersList orders={DUMMY_AVAILABLE_ORDERS} />
             </div>
           </>
         ) : (

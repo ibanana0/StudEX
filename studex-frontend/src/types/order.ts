@@ -1,5 +1,20 @@
 import type { User, DriverProfile } from './user';
 
+/**
+ * Driver-side wizard stages for a single active order.
+ * Maps to DB OrderStatus as follows:
+ *   preview    → MENCARI_DRIVER  (driver hasn't accepted)
+ *   accepted   → DIPROSES_DRIVER (accepted, heading to pickup store)
+ *   at_store   → DIPROSES_DRIVER (at store, collecting items)
+ *   delivering → DALAM_PERJALANAN
+ *   payment   → DRIVER_SAMPAI (driver at buyer location, awaiting QRIS payment) (items collected, heading to buyer)
+ *
+ * TODO [BACKEND]: persist driverWizardStep in the orders table (or derive from
+ * a more granular OrderStatus) so the stage survives app restarts / multiple devices.
+ * For now it lives in Zustand (session-only).
+ */
+export type DriverOrderStage = 'preview' | 'accepted' | 'at_store' | 'delivering' | 'payment';
+
 export type OrderStatus =
   | 'MENCARI_DRIVER'
   | 'DIPROSES_DRIVER'
