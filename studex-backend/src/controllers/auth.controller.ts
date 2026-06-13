@@ -21,13 +21,20 @@ const authUserSelect = {
   universitas: true,
   role: true,
   isDriverVerified: true,
+  driverProfile: {
+    select: {
+      id: true,
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 type AuthUser = Prisma.UserGetPayload<{
   select: typeof authUserSelect;
 }>;
 
-type PublicUser = Omit<AuthUser, 'password' | 'googleId'>;
+type PublicUser = Omit<AuthUser, 'password' | 'googleId' | 'driverProfile'> & {
+  hasDriverApplication: boolean;
+};
 
 function generateToken(userId: number, role: Role): string {
   const secret = process.env.JWT_SECRET;
@@ -69,8 +76,11 @@ function isProfileComplete(user: Pick<AuthUser, 'username' | 'name' | 'phoneNumb
 }
 
 function toPublicUser(user: AuthUser): PublicUser {
-  const { password: _password, googleId: _googleId, ...publicUser } = user;
-  return publicUser;
+  const { password: _password, googleId: _googleId, driverProfile: _driverProfile, ...publicUser } = user;
+  return {
+    ...publicUser,
+    hasDriverApplication: Boolean(user.driverProfile),
+  };
 }
 
 function buildAuthPayload(user: AuthUser, token?: string) {

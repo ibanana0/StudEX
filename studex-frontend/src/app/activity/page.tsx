@@ -1,20 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { ActivityTab } from '@/types';
 import { Header } from '@/components/home';
 import BottomNav from '@/components/ui/BottomNav';
 import { ActivityTabs, TransactionCard } from '@/components/activity';
 import { DUMMY_TRANSACTIONS, DUMMY_HISTORY } from '@/dummy_payload/activity';
-import { DUMMY_PROFILE_PIC } from '@/dummy_payload/home';
+import { useAuth } from '@/context/AuthContext';
 import { useUserStore } from '@/stores/userStore';
 
 // ── Activity Page ────────────────────────────────────────────────────────────
 export default function ActivityPage() {
+  const router = useRouter();
+  const { user, isLoading, needsProfileCompletion, canUseDriverMode, sessionMode } = useAuth();
   const [activeTab, setActiveTab] = useState<ActivityTab>('dalam-proses');
   const role = useUserStore((s) => s.role);
   const profilePic = useUserStore((s) => s.profilePic);
   const isDriver = role === 'DRIVER';
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    if (user.role === 'ADMIN') {
+      router.replace('/admin/drivers');
+      return;
+    }
+
+    if (needsProfileCompletion) {
+      router.replace('/register');
+      return;
+    }
+
+    if (canUseDriverMode && !sessionMode) {
+      router.replace('/profile');
+    }
+  }, [canUseDriverMode, isLoading, needsProfileCompletion, router, sessionMode, user]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="mx-auto flex min-h-screen w-[430px] items-center justify-center bg-white">
+        <p className="font-bitter text-lg text-[#5F5A74]">Memuat aktivitas...</p>
+      </div>
+    );
+  }
 
   const displayedItems =
     activeTab === 'dalam-proses' ? DUMMY_TRANSACTIONS : DUMMY_HISTORY;

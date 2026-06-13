@@ -5,10 +5,15 @@ import type { Role } from '@/types/user';
 
 interface ModeToggleProps {
   currentRole: Role;
+  isDriverVerified: boolean;
   onToggle: (targetRole: Role) => void;
 }
 
-export default function ModeToggle({ currentRole, onToggle }: ModeToggleProps) {
+export default function ModeToggle({
+  currentRole,
+  isDriverVerified,
+  onToggle,
+}: ModeToggleProps) {
   const isBuyer = currentRole !== 'DRIVER';
 
   return (
@@ -33,11 +38,18 @@ export default function ModeToggle({ currentRole, onToggle }: ModeToggleProps) {
         {/* Driver */}
         <button
           type="button"
-          onClick={() => onToggle('DRIVER')}
+          onClick={() => {
+            if (isDriverVerified) {
+              onToggle('DRIVER');
+            }
+          }}
+          disabled={!isDriverVerified}
           className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3.5 transition-colors font-bitter font-medium text-sm ${
             !isBuyer
               ? 'bg-[#F5F2FF] text-primary'
-              : 'bg-transparent text-gray-400'
+              : isDriverVerified
+                ? 'bg-transparent text-gray-400'
+                : 'bg-transparent text-gray-300'
           }`}
         >
           <Bike className="w-[18px] h-[18px]" />

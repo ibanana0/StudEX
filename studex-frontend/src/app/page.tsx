@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Header,
@@ -11,6 +11,7 @@ import {
 } from '@/components/home';
 import { DriverQuickPanel, AvailableOrdersList } from '@/components/home/driver';
 import BottomNav from '@/components/ui/BottomNav';
+import { useAuth } from '@/context/AuthContext';
 import { DUMMY_USER_NAME, DUMMY_ACTIVITIES, DUMMY_ACTIVE_ORDER } from '@/dummy_payload/home';
 import { DUMMY_AVAILABLE_ORDERS } from '@/dummy_payload/driver_home';
 import { useUserStore } from '@/stores/userStore';
@@ -18,12 +19,46 @@ import { useUserStore } from '@/stores/userStore';
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const router = useRouter();
+  const { user, isLoading, needsProfileCompletion, canUseDriverMode, sessionMode } = useAuth();
   const role = useUserStore((s) => s.role);
   const profilePic = useUserStore((s) => s.profilePic);
   const driverProfile = useUserStore((s) => s.driverProfile);
   const isDriver = role === 'DRIVER';
 
   const [isOnline, setIsOnline] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    if (user.role === 'ADMIN') {
+      router.replace('/admin/drivers');
+      return;
+    }
+
+    if (needsProfileCompletion) {
+      router.replace('/register');
+      return;
+    }
+
+    if (canUseDriverMode && !sessionMode) {
+      router.replace('/profile');
+    }
+  }, [canUseDriverMode, isLoading, needsProfileCompletion, router, sessionMode, user]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="mx-auto flex min-h-screen w-[430px] items-center justify-center bg-white">
+        <p className="font-bitter text-lg text-[#5F5A74]">Menyiapkan StudEx...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white w-[430px] mx-auto relative">

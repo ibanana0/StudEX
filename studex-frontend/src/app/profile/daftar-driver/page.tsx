@@ -1,46 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import BottomNav from '@/components/ui/BottomNav';
 import FileUploadZone from '@/components/profile/FileUploadZone';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/utils/api';
 
-// ── Daftar Driver Page ──────────────────────────────────────────────────────
+async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error('Failed to read file'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function DaftarDriverPage() {
   const router = useRouter();
-
-  // TODO [AUTH]: Check if user is logged in and does NOT already have a driver account.
-  // If user already has driver account, redirect to /profile or show a "already registered" message.
-  // Example:
-  //   const { user, isLoading } = useAuth();
-  //   if (user?.hasDriverAccount) { router.replace('/profile'); return null; }
+  const { user, isLoading, canUseDriverMode, refreshMe } = useAuth();
 
   const [ktmFile, setKtmFile] = useState<File | null>(null);
   const [qrisFile, setQrisFile] = useState<File | null>(null);
   const [agreed, setAgreed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const canSubmit = ktmFile && qrisFile && agreed;
+  const canSubmit = Boolean(ktmFile && qrisFile && agreed);
 
-  const handleSubmit = () => {
-    if (!canSubmit) return;
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
 
-    // TODO [API]: Upload KTM and QRIS files to backend, then create driver registration.
-    // Example:
-    //   const formData = new FormData();
-    //   formData.append('ktm', ktmFile);
-    //   formData.append('qris', qrisFile);
-    //   await api.post('/driver/register', formData);
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
 
-    toast.success('Pendaftaran driver berhasil dikirim! Menunggu verifikasi admin.');
-    router.push('/profile');
+    if (user.role === 'ADMIN' || canUseDriverMode || user.hasDriverApplication) {
+      router.replace('/profile');
+    }
+  }, [canUseDriverMode, isLoading, router, user]);
+
+  const handleSubmit = async () => {
+    if (!canSubmit || !ktmFile || !qrisFile) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const [ktmUrl, qrisUrl] = await Promise.all([
+        fileToDataUrl(ktmFile),
+        fileToDataUrl(qrisFile),
+      ]);
+
+      await api.post('/drivers/register', {
+        ktmUrl,
+        qrisUrl,
+      });
+
+      await refreshMe();
+      toast.success('Pendaftaran driver berhasil dikirim! Menunggu verifikasi admin.');
+      router.push('/profile');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Gagal mengirim pendaftaran driver');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white w-[430px] mx-auto">
+        <p className="font-bitter text-lg text-[#5F5A74]">Memuat formulir driver...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white w-[430px] mx-auto relative">
-      {/* ── Header ── */}
       <div className="flex items-center gap-3 p-4 border-b sticky top-0 bg-white z-10">
         <button
           type="button"
@@ -52,14 +100,11 @@ export default function DaftarDriverPage() {
         <h1 className="font-semibold text-lg font-bitter">Profil</h1>
       </div>
 
-      {/* ── Scrollable Content ── */}
       <main className="flex-1 overflow-y-auto px-5 pt-5 pb-24 space-y-6">
-        {/* Page Title */}
         <h2 className="text-[22px] font-bold font-bitter text-[#1B1B24] leading-tight">
           Daftar Driver StudEx
         </h2>
 
-        {/* KTM Upload */}
         <FileUploadZone
           label="Kartu Mahasiswa (KTM)"
           description="Pastikan data terlihat jelas untuk verifikasi identitas mahasiswa."
@@ -68,7 +113,6 @@ export default function DaftarDriverPage() {
           onFileChange={setKtmFile}
         />
 
-        {/* QRIS Upload */}
         <FileUploadZone
           label="QRIS Pembayaran"
           description="Digunakan untuk menerima pembayaran jastip langsung dari pembeli."
@@ -77,7 +121,6 @@ export default function DaftarDriverPage() {
           onFileChange={setQrisFile}
         />
 
-        {/* Terms Agreement */}
         <label className="flex items-start gap-3 cursor-pointer group">
           <input
             type="checkbox"
@@ -87,14 +130,12 @@ export default function DaftarDriverPage() {
           />
           <span className="text-sm text-foreground leading-relaxed">
             Saya menyetujui{' '}
-            {/* TODO: Link to actual Syarat & Ketentuan page */}
             <button
               type="button"
               className="text-primary font-semibold hover:underline"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // TODO [ROUTE]: Navigate to /syarat-ketentuan page
                 toast('Halaman Syarat & Ketentuan belum tersedia', { icon: '📄' });
               }}
             >
@@ -104,23 +145,22 @@ export default function DaftarDriverPage() {
           </span>
         </label>
 
-        {/* Submit Button */}
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!canSubmit}
+          disabled={!canSubmit || isSubmitting}
           className={`w-full flex items-center justify-center gap-2 rounded-xl py-3.5 font-semibold font-bitter text-base transition-opacity ${
-            canSubmit
+            canSubmit && !isSubmitting
               ? 'bg-primary text-primary-foreground hover:opacity-90'
               : 'bg-muted text-muted-foreground cursor-not-allowed'
           }`}
         >
+          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Kirim Pendaftaran
           <ArrowRight className="w-4 h-4" />
         </button>
       </main>
 
-      {/* ── Bottom Navigation ── */}
       <BottomNav />
     </div>
   );

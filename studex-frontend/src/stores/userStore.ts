@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import type { Role } from '@/types/user';
+import type { Role, User } from '@/types/user';
 import type { DriverOrderStage } from '@/types/order';
-import { DUMMY_USER, DUMMY_DRIVER_PROFILE } from '@/dummy_payload/user';
+import { DUMMY_DRIVER_PROFILE } from '@/dummy_payload/user';
 
 // ── User Store ───────────────────────────────────────────────────────────────
 // Reactive global state for the logged-in user.
@@ -9,8 +9,12 @@ import { DUMMY_USER, DUMMY_DRIVER_PROFILE } from '@/dummy_payload/user';
 
 interface UserState {
   id: number;
+  username?: string | null;
   name: string;
   email: string;
+  fakultas?: string | null;
+  jurusan?: string | null;
+  universitas?: string | null;
   profilePic: string | undefined;
   phoneNumber: string | undefined;
   role: Role;
@@ -20,6 +24,8 @@ interface UserState {
 
   /** Switch role (called by profile mode toggle) */
   setRole: (role: Role) => void;
+  hydrateFromAuth: (user: User, role: Role, hasDriverAccount: boolean) => void;
+  resetUser: () => void;
 
   /** ID of the order the driver is currently processing (null = none) */
   acceptedOrderId: number | null;
@@ -42,19 +48,47 @@ interface UserState {
   setPaymentConfirmedOrderId: (id: number | null) => void;
 }
 
-export const useUserStore = create<UserState>((set) => ({
-  // Seed from dummy payload
-  id: DUMMY_USER.id,
-  name: DUMMY_USER.name,
-  email: DUMMY_USER.email,
-  profilePic: DUMMY_USER.profilePic,
-  phoneNumber: DUMMY_USER.phoneNumber,
-  role: DUMMY_USER.role,
-  isDriverVerified: DUMMY_USER.isDriverVerified,
-  hasDriverAccount: DUMMY_USER.hasDriverAccount,
+const initialUserState = {
+  id: 0,
+  username: '',
+  name: '',
+  email: '',
+  fakultas: '',
+  jurusan: '',
+  universitas: '',
+  profilePic: undefined,
+  phoneNumber: undefined,
+  role: 'USER' as Role,
+  isDriverVerified: false,
+  hasDriverAccount: false,
   driverProfile: DUMMY_DRIVER_PROFILE,
+};
+
+export const useUserStore = create<UserState>((set) => ({
+  ...initialUserState,
 
   setRole: (role) => set({ role }),
+  hydrateFromAuth: (user, role, hasDriverAccount) =>
+    set({
+      id: user.id,
+      username: user.username ?? '',
+      name: user.name,
+      email: user.email,
+      fakultas: user.fakultas ?? '',
+      jurusan: user.jurusan ?? '',
+      universitas: user.universitas ?? '',
+      profilePic: user.profilePic,
+      phoneNumber: user.phoneNumber,
+      role,
+      isDriverVerified: user.isDriverVerified,
+      hasDriverAccount: hasDriverAccount || Boolean(user.hasDriverApplication),
+    }),
+  resetUser: () =>
+    set({
+      ...initialUserState,
+      acceptedOrderId: null,
+      driverOrderStage: null,
+    }),
 
   acceptedOrderId: null,
   setAcceptedOrderId: (id) => set({ acceptedOrderId: id }),
