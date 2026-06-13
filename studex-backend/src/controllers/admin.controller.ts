@@ -1,8 +1,13 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
 
-// 1. Ambil daftar driver pending (punya profile tapi isDriverVerified = false)
-export const getPendingDrivers = async (req: Request, res: Response): Promise<void> => {
+function parseRouteId(rawId: string | string[] | undefined): number | null {
+  const routeValue = Array.isArray(rawId) ? rawId[0] : rawId;
+  const parsed = Number.parseInt(routeValue ?? '', 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export const getPendingDrivers = async (_req: Request, res: Response): Promise<void> => {
   try {
     const pendingDrivers = await prisma.driverProfile.findMany({
       where: {
@@ -10,7 +15,12 @@ export const getPendingDrivers = async (req: Request, res: Response): Promise<vo
           isDriverVerified: false,
         },
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        ktmUrl: true,
+        qrisUrl: true,
+        createdAt: true,
         user: {
           select: {
             id: true,
@@ -28,9 +38,18 @@ export const getPendingDrivers = async (req: Request, res: Response): Promise<vo
       },
     });
 
+    const data = pendingDrivers.map((driverProfile) => ({
+      id: driverProfile.id,
+      userId: driverProfile.userId,
+      ktmUrl: driverProfile.ktmUrl,
+      qrisUrl: driverProfile.qrisUrl,
+      submittedAt: driverProfile.createdAt,
+      user: driverProfile.user,
+    }));
+
     res.status(200).json({
       message: 'Pending drivers fetched successfully',
-      data: pendingDrivers,
+      data,
     });
   } catch (error) {
     console.error('Error fetching pending drivers:', error);
@@ -38,20 +57,18 @@ export const getPendingDrivers = async (req: Request, res: Response): Promise<vo
   }
 };
 
-// 2. Setujui pendaftaran driver (isDriverVerified = true & role = 'DRIVER')
 export const verifyDriver = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.params.userId as string;
-    const parsedUserId = parseInt(userId, 10);
+    const parsedUserId = parseRouteId(req.params.userId);
 
-    if (isNaN(parsedUserId)) {
+    if (!parsedUserId) {
       res.status(400).json({ message: 'Invalid User ID' });
       return;
     }
 
-    // Cek apakah driver profile ada
     const profile = await prisma.driverProfile.findUnique({
       where: { userId: parsedUserId },
+      select: { userId: true },
     });
 
     if (!profile) {
@@ -59,22 +76,18 @@ export const verifyDriver = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Update user: isDriverVerified = true dan role = 'DRIVER'
-    const updatedUser = await prisma.$transaction(async (tx) => {
-      return tx.user.update({
-        where: { id: parsedUserId },
-        data: {
-          isDriverVerified: true,
-          role: 'DRIVER',
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          isDriverVerified: true,
-        },
-      });
+    const updatedUser = await prisma.user.update({
+      where: { id: parsedUserId },
+      data: {
+        isDriverVerified: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isDriverVerified: true,
+      },
     });
 
     res.status(200).json({
@@ -87,20 +100,18 @@ export const verifyDriver = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// 3. Tolak pendaftaran driver (hapus driver profile)
 export const rejectDriver = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.params.userId as string;
-    const parsedUserId = parseInt(userId, 10);
+    const parsedUserId = parseRouteId(req.params.userId);
 
-    if (isNaN(parsedUserId)) {
+    if (!parsedUserId) {
       res.status(400).json({ message: 'Invalid User ID' });
       return;
     }
 
-    // Cek apakah driver profile ada
     const profile = await prisma.driverProfile.findUnique({
       where: { userId: parsedUserId },
+      select: { userId: true },
     });
 
     if (!profile) {
@@ -108,7 +119,6 @@ export const rejectDriver = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Hapus profile driver agar user bisa mendaftar ulang jika perlu
     await prisma.driverProfile.delete({
       where: { userId: parsedUserId },
     });

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
+import { Prisma, CancelledBy, OrderStatus } from '@prisma/client';
 import prisma from '../config/prisma';
-import { OrderStatus, CancelledBy } from '@prisma/client';
 
 interface OrderItem {
   name: string;
@@ -8,25 +8,35 @@ interface OrderItem {
   note?: string;
 }
 
+function parseRouteId(rawId: string | string[] | undefined): number | null {
+  const routeValue = Array.isArray(rawId) ? rawId[0] : rawId;
+  const parsed = Number.parseInt(routeValue ?? '', 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 function validateItemsDescription(items: unknown): items is OrderItem[] {
-  if (!Array.isArray(items) || items.length === 0) return false;
+  if (!Array.isArray(items) || items.length === 0) {
+    return false;
+  }
+
   return items.every(
     (item) =>
       typeof item === 'object' &&
       item !== null &&
-      typeof (item as any).name === 'string' &&
-      (item as any).name.trim().length > 0 &&
-      typeof (item as any).qty === 'number' &&
-      Number.isInteger((item as any).qty) &&
-      (item as any).qty >= 1 &&
-      ((item as any).note === undefined || typeof (item as any).note === 'string')
+      typeof (item as { name?: unknown }).name === 'string' &&
+      (item as { name: string }).name.trim().length > 0 &&
+      typeof (item as { qty?: unknown }).qty === 'number' &&
+      Number.isInteger((item as { qty: number }).qty) &&
+      (item as { qty: number }).qty >= 1 &&
+      ((item as { note?: unknown }).note === undefined || typeof (item as { note?: unknown }).note === 'string')
   );
 }
 
 export const getOrderById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const orderId = parseInt(req.params.id, 10);
-    if (isNaN(orderId)) {
+    const orderId = parseRouteId(req.params.id);
+
+    if (!orderId) {
       res.status(400).json({ message: 'Invalid order ID' });
       return;
     }
@@ -54,9 +64,8 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Only the buyer or the assigned driver may view the order
-    const userId = req.user!.id;
-    if (order.userId !== userId && order.driverId !== userId) {
+    const userId = req.user?.id;
+    if (!userId || (order.userId !== userId && order.driverId !== userId)) {
       res.status(403).json({ message: 'Forbidden' });
       return;
     }
@@ -107,18 +116,23 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     const buyerLatNum = Number(buyerLat);
     const buyerLngNum = Number(buyerLng);
 
-    if (isNaN(estItemPriceNum) || estItemPriceNum < 0) {
+    if (Number.isNaN(estItemPriceNum) || estItemPriceNum < 0) {
       res.status(400).json({ message: 'estItemPrice must be a non-negative number' });
       return;
     }
 
-    if (isNaN(deliveryFeeNum) || deliveryFeeNum < 1000) {
+    if (Number.isNaN(deliveryFeeNum) || deliveryFeeNum < 1000) {
       res.status(400).json({ message: 'deliveryFee must be at least Rp1.000' });
       return;
     }
 
-    if (isNaN(buyerLatNum) || isNaN(buyerLngNum)) {
+    if (Number.isNaN(buyerLatNum) || Number.isNaN(buyerLngNum)) {
       res.status(400).json({ message: 'buyerLat and buyerLng must be valid numbers' });
+      return;
+    }
+
+    if (!req.user?.id) {
+      res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
@@ -126,10 +140,10 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
     const order = await prisma.order.create({
       data: {
-        userId: req.user!.id,
+        userId: req.user.id,
         shopName: String(shopName).trim(),
-        itemsDescription,
-        notes: notes ? String(notes).trim() : null,
+        itemsDescription: itemsDescription as unknown as Prisma.InputJsonValue,
+        notes: typeof notes === 'string' && notes.trim().length > 0 ? notes.trim() : null,
         estItemPrice: estItemPriceNum,
         deliveryFee: deliveryFeeNum,
         totalPrice,
@@ -148,13 +162,22 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
 export const cancelOrder = async (req: Request, res: Response): Promise<void> => {
   try {
-    const orderId = parseInt(req.params.id, 10);
-    if (isNaN(orderId)) {
+    const orderId = parseRouteId(req.params.id);
+
+    if (!orderId) {
       res.status(400).json({ message: 'Invalid order ID' });
       return;
     }
 
-    const { cancelReason } = req.body;
+    if (!req.user?.id) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const cancelReason =
+      typeof req.body.cancelReason === 'string' && req.body.cancelReason.trim().length > 0
+        ? req.body.cancelReason.trim()
+        : null;
 
     const order = await prisma.order.findUnique({ where: { id: orderId } });
 
@@ -163,7 +186,7 @@ export const cancelOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    if (order.userId !== req.user!.id) {
+    if (order.userId !== req.user.id) {
       res.status(403).json({ message: 'Forbidden: You do not own this order' });
       return;
     }
@@ -181,8 +204,7 @@ export const cancelOrder = async (req: Request, res: Response): Promise<void> =>
       data: {
         status: OrderStatus.CANCELLED,
         cancelledBy: CancelledBy.USER,
-        cancelReason: cancelReason ? String(cancelReason).trim() : null,
-        updatedAt: new Date(),
+        cancelReason,
       },
     });
 

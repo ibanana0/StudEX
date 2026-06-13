@@ -9,14 +9,18 @@
     "start": "node dist/server.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "seed:admin": "tsx src/scripts/seedAdmin.ts",
+    "test:auth-admin": "tsx src/scripts/testAuthAdmin.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@types/pg": "^8.20.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -24,7 +28,8 @@
     "google-auth-library": "^10.7.0",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.2.1",
+    "pg": "^8.21.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -33,8 +38,10 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.9.2",
     "@types/node-cron": "^3.0.11",
+    "@types/supertest": "^7.2.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.8.0",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.4",
     "typescript": "^6.0.3"
