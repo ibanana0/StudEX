@@ -9,33 +9,44 @@ import type { Role } from '@/types/user';
 import { Header } from '@/components/home';
 import BottomNav from '@/components/ui/BottomNav';
 import { ProfileCard, ModeToggle, ModeSwitchModal, DriverCTACard } from '@/components/profile';
-import { DUMMY_PROFILE } from '@/dummy_payload/profile';
+import { useUserStore } from '@/stores/userStore';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [currentRole, setCurrentRole] = useState<Role>(DUMMY_PROFILE.role);
+
+  // TODO [AUTH]: When auth is implemented, check if the user is logged in.
+  // If not logged in, redirect to /login or /register page.
+
+  // Read from global store
+  const user = useUserStore();
   const [pendingRole, setPendingRole] = useState<Role | null>(null);
 
+  const username = user.email.split('@')[0];
+
   const handleToggle = (targetRole: Role) => {
-    if (targetRole === currentRole) return;
+    if (targetRole === user.role) return;
     setPendingRole(targetRole);
   };
 
   const handleConfirmSwitch = () => {
     if (!pendingRole) return;
-    setCurrentRole(pendingRole);
+
+    // Mutate the global store — home/activity will react automatically
+    user.setRole(pendingRole);
+
     toast.success(
       pendingRole === 'DRIVER'
         ? 'Berhasil beralih ke mode Driver'
         : 'Berhasil beralih ke mode Pembeli'
     );
     setPendingRole(null);
+    // TODO [API]: Call backend to persist role change
   };
 
   const handleCancelSwitch = () => setPendingRole(null);
 
   const handleLogout = () => {
-    // TODO [AUTH]: clear token, redirect to /login
+    // TODO [AUTH]: Implement logout logic (clear token, redirect to /login)
     toast.success('Berhasil keluar');
   };
 
@@ -43,24 +54,23 @@ export default function ProfilePage() {
     <div className="flex flex-col min-h-screen max-w-[430px] mx-auto bg-white">
       {/* ── Scrollable content ── */}
       <div className="flex flex-col flex-1 px-5 pt-5">
-        <Header profilePic={DUMMY_PROFILE.profilePic} />
+        <Header profilePic={user.profilePic} />
 
         <div className="pt-5 pb-5">
           <ProfileCard
-            name={DUMMY_PROFILE.name}
-            username={DUMMY_PROFILE.username}
-            email={DUMMY_PROFILE.email}
-            profilePic={DUMMY_PROFILE.profilePic}
-            role={currentRole}
-            isDriverVerified={DUMMY_PROFILE.isDriverVerified}
+            name={user.name}
+            username={username}
+            email={user.email}
+            role={user.role}
+            isDriverVerified={user.isDriverVerified}
           />
         </div>
 
         <div className="pt-1 space-y-4">
-          <ModeToggle currentRole={currentRole} onToggle={handleToggle} />
+          <ModeToggle currentRole={user.role} onToggle={handleToggle} />
 
           {/* Driver CTA — only show when user does NOT have a driver account */}
-          {!DUMMY_PROFILE.hasDriverAccount && (
+          {!user.hasDriverAccount && (
             <DriverCTACard onClick={() => router.push('/profile/daftar-driver')} />
           )}
 
