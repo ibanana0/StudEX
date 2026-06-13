@@ -27,9 +27,10 @@ export default function DriverOrderDetailPage({
   const router  = useRouter();
 
   const acceptedOrderId     = useUserStore((s) => s.acceptedOrderId);
-  const setAcceptedOrderId  = useUserStore((s) => s.setAcceptedOrderId);
-  const setDriverOrderStage = useUserStore((s) => s.setDriverOrderStage);
-  const user                = useUserStore((s) => s);
+  const setAcceptedOrderId          = useUserStore((s) => s.setAcceptedOrderId);
+  const setDriverOrderStage         = useUserStore((s) => s.setDriverOrderStage);
+  const setPaymentConfirmedOrderId  = useUserStore((s) => s.setPaymentConfirmedOrderId);
+  const user                        = useUserStore((s) => s);
   const isLockedOut = acceptedOrderId !== null && acceptedOrderId !== orderId;
 
   // Restore persisted stage if this order is already active
@@ -111,7 +112,9 @@ export default function DriverOrderDetailPage({
   };
 
   const handlePaymentReceived = () => {
-    // Wizard complete — clear active order from store
+    // Signal to buyer's payment page that payment is confirmed
+    setPaymentConfirmedOrderId(orderId);
+    // Clear active order wizard state
     setAcceptedOrderId(null);
     setDriverOrderStage(null);
     toast.success('Pembayaran diterima! Pesanan selesai.');

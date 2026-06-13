@@ -28,6 +28,18 @@ interface UserState {
   /** Current wizard stage for the active driver order — persists across navigation */
   driverOrderStage: DriverOrderStage | null;
   setDriverOrderStage: (stage: DriverOrderStage | null) => void;
+
+  /**
+   * ID of the order whose payment the driver has confirmed (null = none).
+   * Set by driver's handlePaymentReceived; read by buyer's payment page to
+   * unlock "Close Order" button.
+   *
+   * NOTE [BACKEND]: In production this is derived from order.status === 'COMPLETED'.
+   * Buyer page should poll GET /orders/:id (or use SSE) and unlock when status
+   * reaches COMPLETED. This Zustand field is a frontend-only simulation.
+   */
+  paymentConfirmedOrderId: number | null;
+  setPaymentConfirmedOrderId: (id: number | null) => void;
 }
 
 export const useUserStore = create<UserState>((set) => ({
@@ -49,4 +61,7 @@ export const useUserStore = create<UserState>((set) => ({
 
   driverOrderStage: null,
   setDriverOrderStage: (stage) => set({ driverOrderStage: stage }),
+
+  paymentConfirmedOrderId: null,
+  setPaymentConfirmedOrderId: (id) => set({ paymentConfirmedOrderId: id }),
 }));

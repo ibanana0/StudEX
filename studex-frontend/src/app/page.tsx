@@ -7,10 +7,11 @@ import {
   GreetingSection,
   OpenJastipBanner,
   RecentActivities,
+  ActiveOrderBanner,
 } from '@/components/home';
 import { DriverQuickPanel, AvailableOrdersList } from '@/components/home/driver';
 import BottomNav from '@/components/ui/BottomNav';
-import { DUMMY_USER_NAME, DUMMY_ACTIVITIES } from '@/dummy_payload/home';
+import { DUMMY_USER_NAME, DUMMY_ACTIVITIES, DUMMY_ACTIVE_ORDER } from '@/dummy_payload/home';
 import { DUMMY_AVAILABLE_ORDERS } from '@/dummy_payload/driver_home';
 import { useUserStore } from '@/stores/userStore';
 
@@ -52,6 +53,15 @@ export default function HomePage() {
           // ── Buyer Home ──
           <>
             <GreetingSection userName={DUMMY_USER_NAME} />
+
+            {/* Active order banner — shown when driver has accepted buyer's order */}
+            {DUMMY_ACTIVE_ORDER && (
+              <ActiveOrderBanner
+                order={DUMMY_ACTIVE_ORDER}
+                onClick={() => router.push(`/order/buyer/${DUMMY_ACTIVE_ORDER.id}`)}
+              />
+            )}
+
             <OpenJastipBanner onStartOrder={() => router.push('/order')} />
             <RecentActivities activities={DUMMY_ACTIVITIES} />
           </>
