@@ -1,3 +1,12 @@
 .env
+
+# IDE / tooling
 .claude/
+.qoder/
+
+# AI agent / scratch markdown
+CLAUDE.md
+AGENTS.md
+StudEX.md
 StudEx.md
+page.md
