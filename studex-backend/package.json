@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "seed:admin": "tsx src/scripts/seedAdmin.ts",
+    "seed:driver": "tsx src/scripts/seedDriver.ts",
     "test:auth-admin": "tsx src/scripts/testAuthAdmin.ts"
   },
   "keywords": [],
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/connect": "^3.4.38",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",

@@ -83,8 +83,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       shopName,
       itemsDescription,
       notes,
-      estItemPrice,
-      deliveryFee,
       buyerLat,
       buyerLng,
     } = req.body;
@@ -92,13 +90,11 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     if (
       !shopName ||
       itemsDescription === undefined ||
-      estItemPrice === undefined ||
-      deliveryFee === undefined ||
       buyerLat === undefined ||
       buyerLng === undefined
     ) {
       res.status(400).json({
-        message: 'shopName, itemsDescription, estItemPrice, deliveryFee, buyerLat, and buyerLng are required',
+        message: 'shopName, itemsDescription, buyerLat, and buyerLng are required',
       });
       return;
     }
@@ -111,20 +107,8 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const estItemPriceNum = Number(estItemPrice);
-    const deliveryFeeNum = Number(deliveryFee);
     const buyerLatNum = Number(buyerLat);
     const buyerLngNum = Number(buyerLng);
-
-    if (Number.isNaN(estItemPriceNum) || estItemPriceNum < 0) {
-      res.status(400).json({ message: 'estItemPrice must be a non-negative number' });
-      return;
-    }
-
-    if (Number.isNaN(deliveryFeeNum) || deliveryFeeNum < 1000) {
-      res.status(400).json({ message: 'deliveryFee must be at least Rp1.000' });
-      return;
-    }
 
     if (Number.isNaN(buyerLatNum) || Number.isNaN(buyerLngNum)) {
       res.status(400).json({ message: 'buyerLat and buyerLng must be valid numbers' });
@@ -136,17 +120,12 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const totalPrice = estItemPriceNum + deliveryFeeNum;
-
     const order = await prisma.order.create({
       data: {
         userId: req.user.id,
         shopName: String(shopName).trim(),
         itemsDescription: itemsDescription as unknown as Prisma.InputJsonValue,
         notes: typeof notes === 'string' && notes.trim().length > 0 ? notes.trim() : null,
-        estItemPrice: estItemPriceNum,
-        deliveryFee: deliveryFeeNum,
-        totalPrice,
         buyerLat: buyerLatNum,
         buyerLng: buyerLngNum,
         status: OrderStatus.MENCARI_DRIVER,
@@ -211,6 +190,163 @@ export const cancelOrder = async (req: Request, res: Response): Promise<void> =>
     res.status(200).json({ message: 'Order cancelled successfully', data: cancelled });
   } catch (error) {
     console.error('Cancel order error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getDriverOrderPool = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    if (req.user.role !== 'DRIVER') {
+      res.status(403).json({ message: 'Forbidden: Only verified drivers can view the order pool' });
+      return;
+    }
+
+    const orders = await prisma.order.findMany({
+      where: {
+        status: OrderStatus.MENCARI_DRIVER,
+      },
+      include: {
+        buyer: {
+          select: { id: true, name: true, profilePic: true },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.status(200).json({ data: orders });
+  } catch (error) {
+    console.error('Get driver order pool error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const claimOrder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const orderId = parseRouteId(req.params.id);
+
+    if (!orderId) {
+      res.status(400).json({ message: 'Invalid order ID' });
+      return;
+    }
+
+    if (!req.user?.id) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    if (req.user.role !== 'DRIVER') {
+      res.status(403).json({ message: 'Forbidden: Only verified drivers can claim orders' });
+      return;
+    }
+
+    // Cek apakah driver masih punya orderan aktif yang belum selesai
+    const activeOrder = await prisma.order.findFirst({
+      where: {
+        driverId: req.user.id,
+        status: {
+          in: [
+            OrderStatus.DIPROSES_DRIVER,
+            OrderStatus.DALAM_PERJALANAN,
+            OrderStatus.DRIVER_SAMPAI,
+            OrderStatus.PESANAN_TIBA,
+          ],
+        },
+      },
+    });
+
+    if (activeOrder) {
+      res.status(400).json({ message: 'Anda masih memiliki pesanan aktif yang belum diselesaikan.' });
+      return;
+    }
+
+    const result = await prisma.order.updateMany({
+      where: {
+        id: orderId,
+        driverId: null,
+        status: OrderStatus.MENCARI_DRIVER,
+      },
+      data: {
+        driverId: req.user.id,
+        status: OrderStatus.DIPROSES_DRIVER,
+      },
+    });
+
+    if (result.count === 0) {
+      res.status(409).json({ message: 'Conflict: Order already taken or not available' });
+      return;
+    }
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    res.status(200).json({ message: 'Order claimed successfully', data: order });
+  } catch (error) {
+    console.error('Claim order error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const orderId = parseRouteId(req.params.id);
+    const { status } = req.body;
+
+    if (!orderId) {
+      res.status(400).json({ message: 'Invalid order ID' });
+      return;
+    }
+
+    if (!status) {
+      res.status(400).json({ message: 'Status is required' });
+      return;
+    }
+
+    if (!req.user?.id) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+
+    if (!order) {
+      res.status(404).json({ message: 'Order not found' });
+      return;
+    }
+
+    if (order.driverId !== req.user.id) {
+      res.status(403).json({ message: 'Forbidden: You are not the driver for this order' });
+      return;
+    }
+
+    const validTransitions: Record<string, OrderStatus> = {
+      [OrderStatus.DIPROSES_DRIVER]: OrderStatus.DALAM_PERJALANAN,
+      [OrderStatus.DALAM_PERJALANAN]: OrderStatus.DRIVER_SAMPAI,
+    };
+
+    const nextStatus = validTransitions[order.status];
+
+    if (!nextStatus || nextStatus !== status) {
+      res.status(400).json({ 
+        message: 'Invalid status transition', 
+        currentStatus: order.status, 
+        expectedNextStatus: nextStatus || 'None (already at PESANAN_TIBA or invalid)' 
+      });
+      return;
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: nextStatus },
+    });
+
+    res.status(200).json({ message: 'Order status updated successfully', data: updatedOrder });
+  } catch (error) {
+    console.error('Update order status error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

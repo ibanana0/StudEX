@@ -38,7 +38,7 @@ export const getPendingDrivers = async (_req: Request, res: Response): Promise<v
       },
     });
 
-    const data = pendingDrivers.map((driverProfile) => ({
+    const data = pendingDrivers.map((driverProfile: any) => ({
       id: driverProfile.id,
       userId: driverProfile.userId,
       ktmUrl: driverProfile.ktmUrl,
