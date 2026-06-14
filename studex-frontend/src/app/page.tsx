@@ -78,10 +78,21 @@ export default function HomePage() {
             />
 
             <div className="space-y-3">
-              <h2 className="text-xl font-bold font-bitter text-[#1B1B24]">
-                Orderan Tersedia
-              </h2>
-              <AvailableOrdersList orders={DUMMY_AVAILABLE_ORDERS} />
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold font-bitter text-[#1B1B24]">
+                  Orderan Tersedia
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => router.push('/order/driver')}
+                  className="text-sm font-semibold text-primary underline"
+                >
+                  Lihat Semua
+                </button>
+              </div>
+              <div className="p-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center text-sm text-gray-500">
+                Data di atas adalah ringkasan. Silahkan klik <b className="text-[#3525CD]">Lihat Semua</b> untuk masuk ke ruangan Pool Order Asli.
+              </div>
             </div>
           </>
         ) : (
@@ -93,7 +104,7 @@ export default function HomePage() {
             {DUMMY_ACTIVE_ORDER && (
               <ActiveOrderBanner
                 order={DUMMY_ACTIVE_ORDER}
-                onClick={() => router.push(`/order/buyer/${DUMMY_ACTIVE_ORDER.id}`)}
+                onClick={() => router.push(`/order/buyer/${DUMMY_ACTIVE_ORDER?.id}`)}
               />
             )}
 
