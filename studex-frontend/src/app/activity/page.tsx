@@ -2,8 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useMinLoadTime } from '@/hooks/useMinLoadTime';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
 import type { Transaction, TransactionStatus, Order } from '@/types';
 import { Header } from '@/components/home';
 import BottomNav from '@/components/ui/BottomNav';
@@ -39,8 +41,6 @@ function mapOrderToTransaction(order: Order): Transaction {
     status,
     vendor: order.shopName,
     description,
-    iconVariant: 'cup',
-    iconBg: status === 'selesai' ? '#E8F5E9' : status === 'dibatalkan' ? '#FFEBEE' : '#FFF3E0',
   };
 }
 
@@ -50,6 +50,7 @@ export default function ActivityPage() {
   const role = useUserStore((s) => s.role);
   const profilePic = useUserStore((s) => s.profilePic);
   const isDriver = role === 'DRIVER';
+  const minLoadDone = useMinLoadTime(400);
 
   useEffect(() => {
     if (isLoading) {
@@ -87,11 +88,22 @@ export default function ActivityPage() {
     enabled: Boolean(user && user.role !== 'ADMIN'),
   });
 
-  if (isLoading || !user) {
+  if (!minLoadDone || isLoading || !user) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="font-bitter text-lg text-[#5F5A74]">Memuat aktivitas...</p>
-      </div>
+      <main className="flex-1 px-5 pt-5 pb-24 space-y-5">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-9 w-9 rounded-full" />
+          <Skeleton className="h-6 w-32" />
+        </div>
+        <Skeleton className="h-6 w-48" />
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-28" />
+          <SkeletonCard />
+          <SkeletonCard />
+          <Skeleton className="h-4 w-20 mt-4" />
+          <SkeletonCard />
+        </div>
+      </main>
     );
   }
 

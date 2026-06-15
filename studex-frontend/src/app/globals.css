@@ -123,6 +123,11 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
   }
   body {
     @apply bg-background text-foreground;
@@ -132,5 +137,16 @@
   }
   h1, h2, h3 {
     font-family: var(--font-heading);
+  }
+  button, a, [role="button"], label[for], select {
+    cursor: pointer;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
   }
 }

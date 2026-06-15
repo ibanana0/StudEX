@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useMinLoadTime } from '@/hooks/useMinLoadTime';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Truck } from 'lucide-react';
+import { SkeletonHomeBuyer, SkeletonHomeDriver } from '@/components/ui/Skeleton';
 import {
   Header,
   GreetingSection,
@@ -92,6 +94,7 @@ export default function HomePage() {
   const isDriver = role === 'DRIVER';
 
   const [isOnline, setIsOnline] = useState<boolean>(Boolean(driverProfile?.isActive));
+  const minLoadDone = useMinLoadTime(400);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [poolOrders, setPoolOrders] = useState<Order[]>([]);
@@ -178,11 +181,11 @@ export default function HomePage() {
     }
   }, [isDriver, isLoading, loadBuyerData, loadDriverData, user]);
 
-  if (isLoading || !user) {
+  if (!minLoadDone || isLoading || !user) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="font-bitter text-lg text-[#5F5A74]">Menyiapkan StudEx...</p>
-      </div>
+      <main className="flex-1 px-5 pt-5 pb-24">
+        {isDriver ? <SkeletonHomeDriver /> : <SkeletonHomeBuyer />}
+      </main>
     );
   }
 

@@ -17,6 +17,7 @@
 import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/Skeleton';
 import toast from 'react-hot-toast';
 import BottomNav from '@/components/ui/BottomNav';
 import {
@@ -83,8 +84,22 @@ export default function BuyerOrderTrackingPage({
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="flex-1 px-5 pt-5 pb-4 space-y-4">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-16 w-full rounded-2xl" />
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-28" />
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <Skeleton className="w-6 h-6 rounded-full shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-3 w-2/3" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

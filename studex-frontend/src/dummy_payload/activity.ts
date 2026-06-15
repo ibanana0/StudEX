@@ -9,8 +9,6 @@ export const DUMMY_TRANSACTIONS: Transaction[] = [
     status: 'diproses',
     vendor: 'Fotokopi Berkah',
     description: 'Jilid Makalah (3 Rangkap)',
-    iconVariant: 'print',
-    iconBg: '#D8E2FF',
   },
   {
     id: 'TRX-8925',
@@ -18,8 +16,6 @@ export const DUMMY_TRANSACTIONS: Transaction[] = [
     status: 'menunggu',
     vendor: 'Kopi Kenangan FISIP',
     description: '2x Kopi Susu Mantan',
-    iconVariant: 'cup',
-    iconBg: '#FFDDB8',
   },
 ];
 
@@ -30,8 +26,6 @@ export const DUMMY_HISTORY: Transaction[] = [
     status: 'selesai',
     vendor: 'Fotokopi Berkah',
     description: 'Print Skripsi (120 Halaman)',
-    iconVariant: 'print',
-    iconBg: '#D8E2FF',
   },
   {
     id: 'TRX-8905',
@@ -39,7 +33,5 @@ export const DUMMY_HISTORY: Transaction[] = [
     status: 'selesai',
     vendor: 'Kopi Kenangan FISIP',
     description: '1x Kopi Susu Mantan',
-    iconVariant: 'cup',
-    iconBg: '#FFDDB8',
   },
 ];

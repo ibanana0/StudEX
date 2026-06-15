@@ -23,6 +23,11 @@ import Providers from './providers';
 export const metadata: Metadata = {
   title: "StudEx — Student Express",
   description: "Platform jastip mahasiswa kampus",
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
