@@ -169,8 +169,12 @@ export default function HomePage() {
     if (isLoading || !user) return;
     if (isDriver) {
       loadDriverData();
+      const interval = setInterval(loadDriverData, 8000);
+      return () => clearInterval(interval);
     } else {
       loadBuyerData();
+      const interval = setInterval(loadBuyerData, 8000);
+      return () => clearInterval(interval);
     }
   }, [isDriver, isLoading, loadBuyerData, loadDriverData, user]);
 
@@ -292,8 +296,17 @@ export default function HomePage() {
                 order={{
                   id: activeOrder.id,
                   shopName: activeOrder.shopName,
-                  estimatedMinutes: estimateMinutesLeft(activeOrder),
+                  estimatedMinutes:
+                    activeOrder.status === 'MENCARI_DRIVER'
+                      ? undefined
+                      : estimateMinutesLeft(activeOrder),
                 }}
+                label={
+                  activeOrder.status === 'MENCARI_DRIVER'
+                    ? 'Mencari Driver...'
+                    : 'Pesanan Sedang Diproses'
+                }
+                variant={activeOrder.status === 'MENCARI_DRIVER' ? 'searching' : 'buyer'}
                 onClick={() => router.push(`/order/buyer/${activeOrder.id}`)}
               />
             )}

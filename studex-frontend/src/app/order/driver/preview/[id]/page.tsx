@@ -21,6 +21,7 @@ export default function DriverOrderPreviewPage({
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     if (Number.isNaN(orderId)) {
@@ -180,13 +181,52 @@ export default function DriverOrderPreviewPage({
         <button
           type="button"
           disabled={isClaiming}
-          onClick={handleClaim}
+          onClick={() => setShowConfirm(true)}
           className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-2xl py-4 font-bitter font-semibold text-base disabled:opacity-70"
         >
           {isClaiming ? <Loader2 className="w-5 h-5 animate-spin" /> : <Truck className="w-5 h-5" />}
           Ambil Pesanan
         </button>
       </div>
+
+      {showConfirm && order && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
+          <div className="w-full max-w-[430px] bg-white rounded-t-3xl px-6 pt-6 pb-8 animate-in slide-in-from-bottom duration-300">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+            <h3 className="text-xl font-bold font-bitter text-[#1B1B24] mb-2">
+              Ambil Pesanan Ini?
+            </h3>
+            <p className="text-sm text-gray-600 mb-1">
+              <span className="font-semibold">{order.shopName}</span>
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              Setelah kamu ambil, kamu bertanggung jawab mengantar pesanan ini ke titik tujuan.
+              Pastikan kamu siap dan online.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 rounded-2xl border border-gray-200 py-3.5 font-bitter font-semibold text-sm text-[#1B1B24]"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isClaiming}
+                onClick={() => {
+                  setShowConfirm(false);
+                  handleClaim();
+                }}
+                className="flex-1 rounded-2xl bg-primary text-white py-3.5 font-bitter font-semibold text-sm disabled:opacity-70 flex items-center justify-center gap-2"
+              >
+                {isClaiming && <Loader2 className="w-4 h-4 animate-spin" />}
+                Ya, Ambil!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

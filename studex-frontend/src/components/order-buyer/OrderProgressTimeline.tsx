@@ -111,8 +111,8 @@ export default function OrderProgressTimeline({ steps }: OrderProgressTimelinePr
               {/* Step indicator */}
               <div className="shrink-0 mt-0.5">
                 {isCompleted && (
-                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                    <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 14 14" fill="none">
+                  <div className="w-6 h-6 rounded-full bg-primary/25 flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5 text-primary/60" viewBox="0 0 14 14" fill="none">
                       <path d="M2.5 7l3 3 6-6" stroke="currentColor" strokeWidth="2"
                         strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -134,11 +134,13 @@ export default function OrderProgressTimeline({ steps }: OrderProgressTimelinePr
               {/* Text */}
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold font-bitter leading-tight ${
-                  isCurrent ? 'text-primary' : isPending ? 'text-gray-400' : 'text-[#1B1B24]'
+                  isCurrent ? 'text-primary' : isCompleted ? 'text-primary/50' : 'text-gray-400'
                 }`}>
                   {step.label}
                 </p>
-                <p className={`text-sm mt-0.5 leading-relaxed ${isPending ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-sm mt-0.5 leading-relaxed ${
+                  isCompleted ? 'text-gray-400' : isPending ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                   {step.description}
                 </p>
               </div>
