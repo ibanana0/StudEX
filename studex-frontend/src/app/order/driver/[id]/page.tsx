@@ -25,6 +25,7 @@ interface OrderDetail {
   status: string;
   buyerLat: number;
   buyerLng: number;
+  deliveryAddress: string | null;
   driverId: number | null;
   buyer: {
     id: number;
@@ -297,7 +298,7 @@ export default function DriverOrderDetailPage({
             <BuyerInfoCard
               buyerName={order.buyer.name}
               buyerPhone={order.buyer.phoneNumber || '-'}
-              deliveryAddress="Lihat di Maps"
+              deliveryAddress={order.deliveryAddress || 'Lihat di Maps'}
               deliveryLat={Number(order.buyerLat)}
               deliveryLng={Number(order.buyerLng)}
             />

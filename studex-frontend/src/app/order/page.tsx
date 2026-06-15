@@ -63,10 +63,10 @@ export default function OrderPage() {
       const valid = await trigger(step1Fields);
       if (valid) setStep(1);
     } else if (step === 1) {
-      const step2Fields: (keyof OrderFormValues)[] = ['buyerLat', 'buyerLng'];
+      const step2Fields: (keyof OrderFormValues)[] = ['buyerLat', 'buyerLng', 'deliveryAddress'];
       const valid = await trigger(step2Fields);
       if (!valid) {
-        toast.error('Pilih lokasi pengantaran terlebih dahulu');
+        toast.error('Lengkapi titik & nama tempat pengantaran dulu');
         return;
       }
       setStep(2);
@@ -94,6 +94,7 @@ export default function OrderPage() {
         notes: values.notes || undefined,
         buyerLat: values.buyerLat,
         buyerLng: values.buyerLng,
+        deliveryAddress: values.deliveryAddress,
       });
 
       const newOrderId = response.data.data.id;

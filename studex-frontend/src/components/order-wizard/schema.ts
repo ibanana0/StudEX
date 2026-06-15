@@ -14,7 +14,7 @@ export const orderSchema = z.object({
   notes: z.string().max(200, 'Catatan maksimal 200 karakter').optional(),
   buyerLat: z.number().optional(),
   buyerLng: z.number().optional(),
-  deliveryAddress: z.string().optional(),
+  deliveryAddress: z.string().min(1, 'Nama tempat pengantaran wajib diisi'),
   deliveryNotes: z.string().max(150, 'Catatan khusus maksimal 150 karakter').optional(),
 });
 

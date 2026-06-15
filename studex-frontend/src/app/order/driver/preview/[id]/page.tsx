@@ -154,8 +154,16 @@ export default function DriverOrderPreviewPage({
             <div>
               <p className="text-xs text-gray-500 font-bitter">Titik Antar</p>
               <p className="text-sm text-[#1B1B24]">
-                {order.deliveryAddress ?? 'Kampus UI Depok'}
+                {order.deliveryAddress ?? '-'}
               </p>
+              <a
+                href={`https://www.google.com/maps?q=${order.buyerLat},${order.buyerLng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary font-semibold underline mt-1 inline-block"
+              >
+                Buka di Google Maps
+              </a>
             </div>
           </div>
         </div>

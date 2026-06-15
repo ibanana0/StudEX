@@ -56,7 +56,7 @@ export default function BuyerOrderTrackingPage({
     return deriveProgressSteps(
       order.status,
       order.stepTimestamps ?? {},
-      order.deliveryAddress ?? 'Kampus UI Depok',
+      order.deliveryAddress ?? 'titik tujuan',
     );
   }, [order]);
 
@@ -127,7 +127,11 @@ export default function BuyerOrderTrackingPage({
           driver={order.driver as any}
         />
 
-        <DeliveryLocationCard address={order.deliveryAddress ?? 'Kampus UI Depok'} />
+        <DeliveryLocationCard
+          address={order.deliveryAddress ?? ''}
+          lat={order.buyerLat}
+          lng={order.buyerLng}
+        />
 
 
         <OrderProgressTimeline steps={steps} />

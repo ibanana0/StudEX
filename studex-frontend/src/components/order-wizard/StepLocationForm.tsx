@@ -103,6 +103,22 @@ export default function StepLocationForm({
               </div>
             </div>
 
+            {/* Nama tempat pengantaran */}
+            <div className="space-y-1 mb-4">
+              <label className="text-sm font-medium font-bitter">
+                Nama Tempat Pengantaran
+              </label>
+              <input
+                {...register('deliveryAddress')}
+                type="text"
+                placeholder="Contoh: Gedung Kuliah Bersama R.302"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Auto-terisi dari peta; bisa di-edit agar driver mudah cari titik antar.
+              </p>
+            </div>
+
             {/* Lat / Lng read-only display */}
             <div className="grid grid-cols-2 gap-2 mb-4">
               <div className="space-y-1">

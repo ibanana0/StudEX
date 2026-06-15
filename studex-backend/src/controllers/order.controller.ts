@@ -55,7 +55,7 @@ function enrichOrder(order: any): any {
   const estTime = new Date(createdTime.getTime() + 30 * 60 * 1000);
   const estimatedTime = formatLocalTime(estTime);
 
-  const deliveryAddress = "Kampus UI Depok";
+  const deliveryAddress: string | null = order.deliveryAddress ?? null;
 
   const stored = (order.stepTimestamps ?? {}) as Record<string, string>;
   const stepTimestamps: Record<string, string> = {
@@ -155,6 +155,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       notes,
       buyerLat,
       buyerLng,
+      deliveryAddress,
     } = req.body;
 
     if (
@@ -166,6 +167,16 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       res.status(400).json({
         message: 'shopName, itemsDescription, buyerLat, and buyerLng are required',
       });
+      return;
+    }
+
+    const deliveryAddressClean =
+      typeof deliveryAddress === 'string' && deliveryAddress.trim().length > 0
+        ? deliveryAddress.trim()
+        : null;
+
+    if (!deliveryAddressClean) {
+      res.status(400).json({ message: 'deliveryAddress is required' });
       return;
     }
 
@@ -199,6 +210,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         notes: typeof notes === 'string' && notes.trim().length > 0 ? notes.trim() : null,
         buyerLat: buyerLatNum,
         buyerLng: buyerLngNum,
+        deliveryAddress: deliveryAddressClean,
         status: OrderStatus.MENCARI_DRIVER,
         stepTimestamps: { MENCARI_DRIVER: nowIso } as Prisma.InputJsonValue,
       },
