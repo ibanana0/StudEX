@@ -10,3 +10,9 @@ AGENTS.md
 StudEX.md
 StudEx.md
 page.md
+openspec.md
+
+# OpenSpec working dir (local planning only, not for remote)
+openspec/
+.agent/
+

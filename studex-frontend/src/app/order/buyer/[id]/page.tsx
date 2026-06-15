@@ -14,9 +14,9 @@
  * once the backend status-update endpoints are wired up.
  */
 
-import { use, useMemo } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import BottomNav from '@/components/ui/BottomNav';
 import {
@@ -25,7 +25,9 @@ import {
   OrderProgressTimeline,
   deriveProgressSteps,
 } from '@/components/order-buyer';
-import { DUMMY_BUYER_ORDER } from '@/dummy_payload/buyer_order';
+import { useOrderPolling } from '@/hooks/useOrderPolling';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/utils/api';
 
 export default function BuyerOrderTrackingPage({
   params,
@@ -35,29 +37,61 @@ export default function BuyerOrderTrackingPage({
   const { id } = use(params);
   const orderId = parseInt(id, 10);
   const router = useRouter();
+  const { sessionMode, isLoading: isAuthLoading } = useAuth();
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // TODO [API]: replace with useOrderPolling(orderId) for live updates
-  const order = DUMMY_BUYER_ORDER.id === orderId ? DUMMY_BUYER_ORDER : null;
+  useEffect(() => {
+    if (isAuthLoading) return;
+    if (sessionMode === 'DRIVER') {
+      router.replace('/');
+    }
+  }, [isAuthLoading, sessionMode, router]);
+
+  const { data: order, isLoading, isError } = useOrderPolling(
+    isNaN(orderId) ? null : orderId
+  );
 
   const steps = useMemo(() => {
     if (!order) return [];
     return deriveProgressSteps(
       order.status,
-      order.stepTimestamps,
-      order.deliveryAddress,
+      order.stepTimestamps ?? {},
+      order.deliveryAddress ?? 'Kampus UI Depok',
     );
   }, [order]);
 
-  const isArrived = order?.status === 'DRIVER_SAMPAI' || order?.status === 'PESANAN_TIBA';
+  const isArrived = order?.status === 'DRIVER_SAMPAI' || order?.status === 'PESANAN_TIBA' || order?.status === 'COMPLETED';
 
-  const handleReceive = () => {
-    // TODO [API]: PATCH /orders/:id/status → PESANAN_TIBA
-    router.push(`/order/buyer/${orderId}/payment`);
+  const handleReceive = async () => {
+    if (!order) return;
+
+    if (order.status === 'DRIVER_SAMPAI') {
+      setIsUpdating(true);
+      try {
+        await api.patch(`/orders/${orderId}/status`, { status: 'PESANAN_TIBA' });
+        toast.success('Pesanan diterima! Silakan lakukan pembayaran.');
+        router.push(`/order/buyer/${orderId}/payment`);
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || 'Gagal memperbarui status');
+      } finally {
+        setIsUpdating(false);
+      }
+    } else {
+      router.push(`/order/buyer/${orderId}/payment`);
+    }
   };
 
-  if (!order) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 p-6 text-center max-w-[430px] mx-auto bg-white">
+      <div className="flex flex-1 items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isNaN(orderId) || isError || !order) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
         <ShoppingBag className="w-12 h-12 text-muted-foreground" />
         <p className="font-semibold font-bitter">Pesanan tidak ditemukan</p>
         <button onClick={() => router.replace('/')} className="text-sm text-primary underline">
@@ -68,7 +102,7 @@ export default function BuyerOrderTrackingPage({
   }
 
   return (
-    <div className="flex flex-col min-h-screen max-w-[430px] mx-auto bg-white">
+    <>
       {/* ── Header ── */}
       <div className="flex items-center gap-2 px-5 pt-5 pb-2">
         <button
@@ -86,14 +120,15 @@ export default function BuyerOrderTrackingPage({
         <p className="text-sm font-bold font-bitter text-[#1B1B24]">Detail Pesanan</p>
 
         <OrderInfoCard
-          orderCode={order.orderCode}
+          orderCode={order.orderCode ?? ''}
           shopName={order.shopName}
-          estimatedTime={order.estimatedTime}
+          estimatedTime={order.estimatedTime ?? ''}
           status={order.status}
-          driver={order.driver}
+          driver={order.driver as any}
         />
 
-        <DeliveryLocationCard address={order.deliveryAddress} />
+        <DeliveryLocationCard address={order.deliveryAddress ?? 'Kampus UI Depok'} />
+
 
         <OrderProgressTimeline steps={steps} />
       </div>
@@ -121,6 +156,6 @@ export default function BuyerOrderTrackingPage({
       </div>
 
       <BottomNav />
-    </div>
+    </>
   );
 }

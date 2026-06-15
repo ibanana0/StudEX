@@ -15,6 +15,7 @@ enum Role {
 enum OrderStatus {
   MENCARI_DRIVER
   DIPROSES_DRIVER
+  DRIVER_DI_TOKO
   DALAM_PERJALANAN
   DRIVER_SAMPAI
   PESANAN_TIBA
@@ -25,6 +26,19 @@ enum OrderStatus {
 enum CancelledBy {
   USER
   SYSTEM
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
 }
 
 model User {
@@ -40,6 +54,7 @@ model User {
   jurusan            String?
   universitas        String?
   role               Role           @default(USER)
+  accountStatus      AccountStatus  @default(ACTIVE) @map("account_status")
   isDriverVerified   Boolean        @default(false) @map("is_driver_verified")
   createdAt          DateTime       @default(now()) @map("created_at")
 
@@ -48,6 +63,8 @@ model User {
   ordersAsDriver     Order[]        @relation("DriverOrders")
   ratingsGiven       Rating[]       @relation("RatingsGiven")
   ratingsReceived    Rating[]       @relation("RatingsReceived")
+  reportsCreated     Report[]       @relation("ReportsCreated")
+  reportsReceived    Report[]       @relation("ReportsReceived")
 
   @@map("users")
 }
@@ -80,18 +97,39 @@ model Order {
   cancelReason     String?     @map("cancel_reason")
   buyerLat         Decimal     @map("buyer_lat") @db.Decimal(10, 7)
   buyerLng         Decimal     @map("buyer_lng") @db.Decimal(10, 7)
+  stepTimestamps   Json?       @map("step_timestamps")
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @default(now()) @map("updated_at")
 
   buyer            User        @relation("BuyerOrders", fields: [userId], references: [id])
   driver           User?       @relation("DriverOrders", fields: [driverId], references: [id])
   ratings          Rating[]
+  reports          Report[]
 
   @@index([status])
   @@index([driverId])
   @@index([userId])
   @@index([updatedAt])
   @@map("orders")
+}
+
+model Report {
+  id         Int          @id @default(autoincrement())
+  reporterId Int          @map("reporter_id")
+  reportedId Int          @map("reported_id")
+  orderId    Int?         @map("order_id")
+  reason     String
+  details    String
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  reporter   User         @relation("ReportsCreated", fields: [reporterId], references: [id])
+  reported   User         @relation("ReportsReceived", fields: [reportedId], references: [id])
+  order      Order?       @relation(fields: [orderId], references: [id])
+
+  @@index([status])
+  @@map("reports")
 }
 
 model Rating {

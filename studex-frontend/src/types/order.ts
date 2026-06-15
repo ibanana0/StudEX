@@ -13,11 +13,18 @@ import type { User, DriverProfile } from './user';
  * a more granular OrderStatus) so the stage survives app restarts / multiple devices.
  * For now it lives in Zustand (session-only).
  */
-export type DriverOrderStage = 'preview' | 'accepted' | 'at_store' | 'delivering' | 'payment';
+export type DriverOrderStage =
+  | 'preview'
+  | 'accepted'
+  | 'at_store'
+  | 'delivering'
+  | 'waiting_buyer'
+  | 'payment';
 
 export type OrderStatus =
   | 'MENCARI_DRIVER'
   | 'DIPROSES_DRIVER'
+  | 'DRIVER_DI_TOKO'
   | 'DALAM_PERJALANAN'
   | 'DRIVER_SAMPAI'
   | 'PESANAN_TIBA'
@@ -37,9 +44,9 @@ export interface Order {
   shopName: string;
   itemsDescription: OrderItem[];
   notes?: string;
-  estItemPrice: number;
-  deliveryFee: number;
-  totalPrice: number;
+  estItemPrice?: number;
+  deliveryFee?: number;
+  totalPrice?: number;
   status: OrderStatus;
   cancelledBy?: 'USER' | 'SYSTEM';
   cancelReason?: string;
@@ -47,6 +54,11 @@ export interface Order {
   buyerLng: number;
   createdAt: string;
   updatedAt: string;
+  orderCode?: string;
+  estimatedTime?: string;
+  deliveryAddress?: string;
+  stepTimestamps?: Partial<Record<OrderStatus, string>>;
   buyer?: User;
   driver?: User & { driverProfile?: DriverProfile };
 }
+

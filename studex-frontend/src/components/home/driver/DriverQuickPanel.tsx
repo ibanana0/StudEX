@@ -6,7 +6,7 @@ import { CheckCheck, TrendingUp, Star } from 'lucide-react';
 
 interface DriverQuickPanelProps {
   isOnline: boolean;
-  onToggle: () => void;
+  onToggle: () => void | Promise<void>;
   totalTrips: number;
   avgRating: number;
 }

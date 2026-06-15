@@ -1,20 +1,52 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { ActivityTab } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
+import type { Transaction, TransactionStatus, Order } from '@/types';
 import { Header } from '@/components/home';
 import BottomNav from '@/components/ui/BottomNav';
-import { ActivityTabs, TransactionCard } from '@/components/activity';
-import { DUMMY_TRANSACTIONS, DUMMY_HISTORY } from '@/dummy_payload/activity';
+import { TransactionCard } from '@/components/activity';
 import { useAuth } from '@/context/AuthContext';
 import { useUserStore } from '@/stores/userStore';
+import api from '@/utils/api';
 
-// ── Activity Page ────────────────────────────────────────────────────────────
+const TERMINAL_STATUSES = new Set(['COMPLETED', 'CANCELLED']);
+
+function mapOrderToTransaction(order: Order): Transaction {
+  let status: TransactionStatus = 'aktif';
+  if (order.status === 'COMPLETED') {
+    status = 'selesai';
+  } else if (order.status === 'CANCELLED') {
+    status = 'dibatalkan';
+  }
+
+  const description = order.itemsDescription
+    ? order.itemsDescription.map((item) => `${item.name} (x${item.qty})`).join(', ')
+    : 'Detail pesanan';
+
+  const dateStr = new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(order.createdAt));
+
+  return {
+    id: `STX-${order.id}`,
+    date: dateStr,
+    status,
+    vendor: order.shopName,
+    description,
+    iconVariant: 'cup',
+    iconBg: status === 'selesai' ? '#E8F5E9' : status === 'dibatalkan' ? '#FFEBEE' : '#FFF3E0',
+  };
+}
+
 export default function ActivityPage() {
   const router = useRouter();
   const { user, isLoading, needsProfileCompletion, canUseDriverMode, sessionMode } = useAuth();
-  const [activeTab, setActiveTab] = useState<ActivityTab>('dalam-proses');
   const role = useUserStore((s) => s.role);
   const profilePic = useUserStore((s) => s.profilePic);
   const isDriver = role === 'DRIVER';
@@ -44,66 +76,86 @@ export default function ActivityPage() {
     }
   }, [canUseDriverMode, isLoading, needsProfileCompletion, router, sessionMode, user]);
 
+  const ordersQuery = useQuery({
+    queryKey: ['orders', isDriver ? 'driver' : 'buyer'],
+    queryFn: async () => {
+      const response = await api.get<{ data: Order[] }>(
+        `/orders?role=${isDriver ? 'driver' : 'buyer'}`
+      );
+      return response.data.data;
+    },
+    enabled: Boolean(user && user.role !== 'ADMIN'),
+  });
+
   if (isLoading || !user) {
     return (
-      <div className="mx-auto flex min-h-screen w-[430px] items-center justify-center bg-white">
+      <div className="flex flex-1 items-center justify-center">
         <p className="font-bitter text-lg text-[#5F5A74]">Memuat aktivitas...</p>
       </div>
     );
   }
 
-  const displayedItems =
-    activeTab === 'dalam-proses' ? DUMMY_TRANSACTIONS : DUMMY_HISTORY;
+  const rawOrders = ordersQuery.data ?? [];
+  const activeOrders = rawOrders.filter((o) => !TERMINAL_STATUSES.has(o.status));
+  const historyOrders = rawOrders.filter((o) => TERMINAL_STATUSES.has(o.status));
 
   return (
-    <div className="min-h-screen flex flex-col bg-white w-[430px] mx-auto relative">
-      {/* ── Main Scrollable Content ── */}
-      <main className="flex-1 overflow-y-auto px-5 pt-5 pb-24 space-y-5">
-        {/* Header: Logo + Profile */}
+    <>
+      <main className="flex-1 overflow-y-auto px-5 pt-5 pb-24 space-y-6">
         <Header profilePic={profilePic} />
 
-        {/* Page Title */}
-        <h1 className="text-[#1B1B24] text-[22px] font-bold leading-7">
-          Aktivitas
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-[#1B1B24] text-[22px] font-bold leading-7">
+            Aktivitas {isDriver ? 'Driver' : 'Pembeli'}
+          </h1>
+          {ordersQuery.isFetching && (
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          )}
+        </div>
 
-        {isDriver ? (
-          // ── Driver Activity (placeholder — no components yet) ──
-          <div className="flex flex-col items-center justify-center text-center py-20">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="18" height="18" x="3" y="3" rx="2" />
-                <path d="M7 7h10M7 12h10M7 17h6" />
-              </svg>
-            </div>
-            <p className="text-lg font-semibold font-bitter text-[#1B1B24]">Aktivitas Driver</p>
-            <p className="text-sm text-muted-foreground mt-1 max-w-[260px]">
-              Halaman aktivitas untuk driver belum tersedia. Sedang dalam pengembangan.
-            </p>
+        {ordersQuery.isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : (
-          // ── Buyer Activity ──
           <>
-            {/* Tab Switcher */}
-            <ActivityTabs activeTab={activeTab} onChange={setActiveTab} />
-
-            {/* Transaction Cards */}
-            <div className="flex flex-col gap-4">
-              {displayedItems.map((tx) => (
-                <TransactionCard key={tx.id} tx={tx} />
-              ))}
-              {displayedItems.length === 0 && (
-                <div className="text-center py-12 text-[#464555] text-sm">
-                  Tidak ada transaksi
+            <section className="space-y-3">
+              <h2 className="text-base font-bold font-bitter text-[#1B1B24]">
+                Pesanan Aktif
+              </h2>
+              {activeOrders.length === 0 ? (
+                <p className="text-center py-6 text-sm text-[#464555]">
+                  Belum ada pesanan aktif.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {activeOrders.map((o) => (
+                    <TransactionCard key={o.id} tx={mapOrderToTransaction(o)} />
+                  ))}
                 </div>
               )}
-            </div>
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="text-base font-bold font-bitter text-[#1B1B24]">Riwayat</h2>
+              {historyOrders.length === 0 ? (
+                <p className="text-center py-6 text-sm text-[#464555]">
+                  Belum ada riwayat transaksi.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {historyOrders.map((o) => (
+                    <TransactionCard key={o.id} tx={mapOrderToTransaction(o)} />
+                  ))}
+                </div>
+              )}
+            </section>
           </>
         )}
       </main>
 
-      {/* ── Bottom Navigation ── */}
       <BottomNav />
-    </div>
+    </>
   );
 }
+

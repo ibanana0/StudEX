@@ -60,7 +60,7 @@ export default function ProfilePage() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex min-h-screen max-w-[430px] items-center justify-center bg-white mx-auto">
+      <div className="flex flex-1 items-center justify-center">
         <p className="font-bitter text-lg text-[#5F5A74]">Memuat profil...</p>
       </div>
     );
@@ -68,7 +68,7 @@ export default function ProfilePage() {
 
   if (canUseDriverMode && !sessionMode) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-white px-5 pt-5">
+      <div className="flex flex-1 flex-col px-5 pt-5">
         <Header profilePic={user.profilePic} />
 
         <div className="flex flex-1 items-center justify-center py-10">
@@ -130,7 +130,7 @@ export default function ProfilePage() {
   const username = store.username || user.username || user.email.split('@')[0];
 
   return (
-    <div className="flex flex-col min-h-screen max-w-[430px] mx-auto bg-white">
+    <>
       <div className="flex flex-col flex-1 px-5 pt-5">
         <Header profilePic={store.profilePic} />
 
@@ -187,6 +187,6 @@ export default function ProfilePage() {
           onCancel={() => setPendingRole(null)}
         />
       )}
-    </div>
+    </>
   );
 }

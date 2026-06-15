@@ -17,13 +17,14 @@
  *     acknowledge receipt — exact flow TBD with backend team).
  */
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, Loader2, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import BottomNav from '@/components/ui/BottomNav';
 import { PaymentStepsCard } from '@/components/order-buyer';
-import { useUserStore } from '@/stores/userStore';
+import { useOrderPolling } from '@/hooks/useOrderPolling';
+import RatingModal from '@/components/modal/RatingModal';
 
 export default function BuyerPaymentPage({
   params,
@@ -33,22 +34,33 @@ export default function BuyerPaymentPage({
   const { id } = use(params);
   const orderId = parseInt(id, 10);
   const router  = useRouter();
+  const [showRating, setShowRating] = useState(false);
 
-  // Unlocked when driver calls handlePaymentReceived() on their side.
-  // TODO [BACKEND]: replace with order.status === 'COMPLETED' from polling.
-  const paymentConfirmedOrderId = useUserStore((s) => s.paymentConfirmedOrderId);
-  const setPaymentConfirmedOrderId = useUserStore((s) => s.setPaymentConfirmedOrderId);
-  const isPaymentConfirmed = paymentConfirmedOrderId === orderId;
+  const { data: order, isLoading } = useOrderPolling(
+    isNaN(orderId) ? null : orderId
+  );
+
+  const isPaymentConfirmed = order?.status === 'COMPLETED';
 
   const handleCloseOrder = () => {
-    setPaymentConfirmedOrderId(null);
-    toast.success('Order selesai! Terima kasih telah menggunakan StudEx.');
-    // TODO [API]: PATCH /orders/:id/status → COMPLETED (buyer acknowledgement)
+    setShowRating(true);
+  };
+
+  const handleFinish = () => {
+    setShowRating(false);
     router.push('/');
   };
 
+  if (isLoading || !order) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col min-h-screen max-w-[430px] mx-auto bg-white">
+    <>
       {/* ── Header ── */}
       <div className="flex items-center gap-2 px-5 pt-5 pb-2">
         <button
@@ -66,6 +78,47 @@ export default function BuyerPaymentPage({
         <h1 className="text-2xl font-bold font-bitter text-[#1B1B24] mt-2 mb-6">
           Langkah Pembayaran
         </h1>
+
+        {/* QRIS Card */}
+        <div className="border border-gray-100 rounded-2xl p-4 flex flex-col items-center gap-4 mb-6 shadow-sm bg-white">
+          <p className="text-sm font-bold text-gray-500 font-bitter uppercase tracking-wider">QRIS Driver</p>
+          <div className="w-[280px] h-[280px] rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center border border-dashed border-gray-200">
+            {order.driver?.driverProfile?.qrisUrl && !order.driver.driverProfile.qrisUrl.startsWith('/dummy') ? (
+              <img
+                src={order.driver.driverProfile.qrisUrl}
+                alt="QRIS Driver"
+                className="object-contain w-full h-full p-2"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-gray-400">
+                <QrCode className="w-16 h-16 stroke-1" />
+                <p className="text-xs text-center max-w-[200px] leading-relaxed">
+                  QRIS tidak tersedia. Silakan lakukan pembayaran tunai atau tanyakan driver.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {order.driver?.driverProfile?.qrisUrl && !order.driver.driverProfile.qrisUrl.startsWith('/dummy') && (
+            <a
+              href={order.driver.driverProfile.qrisUrl}
+              download={`qris-${order.driver?.name ?? 'driver'}.png`}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            >
+              <Download className="w-4 h-4" />
+              Download QRIS
+            </a>
+          )}
+
+          <div className="text-center">
+            <p className="text-base font-bold font-bitter text-[#1B1B24]">
+              {order.driver?.name || 'Nama Driver'}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {order.driver?.phoneNumber ? `WA: ${order.driver.phoneNumber}` : ''}
+            </p>
+          </div>
+        </div>
 
         <PaymentStepsCard />
       </div>
@@ -85,17 +138,30 @@ export default function BuyerPaymentPage({
             <ArrowRight className="w-5 h-5" />
           </button>
         ) : (
-          <button
-            type="button"
-            disabled
-            className="w-full rounded-2xl py-4 border border-gray-200 text-primary font-bitter font-semibold text-base cursor-not-allowed opacity-60"
-          >
-            Close Order
-          </button>
+          <div className="space-y-2">
+            <button
+              type="button"
+              disabled
+              className="w-full rounded-2xl py-4 border border-gray-200 text-primary font-bitter font-semibold text-base cursor-not-allowed opacity-60 flex items-center justify-center gap-2"
+            >
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Menunggu Konfirmasi Driver...
+            </button>
+          </div>
         )}
       </div>
 
       <BottomNav />
-    </div>
+
+      {showRating && (
+        <RatingModal
+          orderId={order.id}
+          driverName={order.driver?.name || 'Driver'}
+          onClose={handleFinish}
+          onSuccess={handleFinish}
+        />
+      )}
+    </>
   );
 }
+

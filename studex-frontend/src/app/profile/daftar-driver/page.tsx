@@ -81,14 +81,14 @@ export default function DaftarDriverPage() {
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white w-[430px] mx-auto">
+      <div className="flex flex-1 items-center justify-center">
         <p className="font-bitter text-lg text-[#5F5A74]">Memuat formulir driver...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white w-[430px] mx-auto relative">
+    <div className="flex flex-1 flex-col relative">
       <div className="flex items-center gap-3 p-4 border-b sticky top-0 bg-white z-10">
         <button
           type="button"

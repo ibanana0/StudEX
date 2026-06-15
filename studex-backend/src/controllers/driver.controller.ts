@@ -14,6 +14,56 @@ function isSupportedUpload(value: string): boolean {
   return value.startsWith('data:image/') || value.startsWith('data:application/pdf');
 }
 
+export const setDriverActive = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    if (req.user?.role !== 'DRIVER' || !req.user?.isDriverVerified) {
+      res.status(403).json({ message: 'Forbidden: Only verified drivers can toggle availability' });
+      return;
+    }
+
+    const { isActive } = req.body;
+
+    if (typeof isActive !== 'boolean') {
+      res.status(400).json({ message: 'isActive must be a boolean' });
+      return;
+    }
+
+    const profile = await prisma.driverProfile.findUnique({ where: { userId } });
+
+    if (!profile) {
+      res.status(404).json({ message: 'Driver profile not found' });
+      return;
+    }
+
+    const updated = await prisma.driverProfile.update({
+      where: { userId },
+      data: { isActive },
+      select: {
+        id: true,
+        userId: true,
+        isActive: true,
+        avgRating: true,
+        totalTrips: true,
+      },
+    });
+
+    res.status(200).json({
+      message: 'Driver availability updated',
+      data: updated,
+    });
+  } catch (error) {
+    console.error('Set driver active error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const registerDriver = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;

@@ -1,6 +1,13 @@
 export type Role = 'USER' | 'DRIVER' | 'ADMIN';
 export type SessionMode = 'BUYER' | 'DRIVER';
 
+export interface UserDriverProfile {
+  id: number;
+  isActive: boolean;
+  avgRating: number | string;
+  totalTrips: number;
+}
+
 export interface User {
   id: number;
   username?: string | null;
@@ -14,6 +21,7 @@ export interface User {
   hasDriverApplication?: boolean;
   role: Role;
   isDriverVerified: boolean;
+  driverProfile?: UserDriverProfile | null;
 }
 
 export interface AuthPayload {
@@ -40,4 +48,38 @@ export interface DriverProfile {
   isActive: boolean;
   avgRating: number;
   totalTrips: number;
+}
+
+export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'BANNED';
+export type ReportStatus = 'PENDING' | 'INVESTIGATING' | 'RESOLVED' | 'DISMISSED';
+
+export interface ReportUser {
+  id: number;
+  name: string;
+  email: string;
+  profilePic?: string | null;
+  role: Role;
+  accountStatus?: AccountStatus;
+}
+
+export interface ReportOrder {
+  id: number;
+  shopName: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface Report {
+  id: number;
+  reporterId: number;
+  reportedId: number;
+  orderId: number | null;
+  reason: string;
+  details: string;
+  status: ReportStatus;
+  createdAt: string;
+  updatedAt: string;
+  reporter: ReportUser;
+  reported: ReportUser;
+  order: ReportOrder | null;
 }

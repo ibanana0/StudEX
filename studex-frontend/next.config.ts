@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/order/:id(\\d+)",
+        destination: "/order/buyer/:id",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

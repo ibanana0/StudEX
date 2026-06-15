@@ -73,7 +73,7 @@ export default function AdminDriversPage() {
 
   if (isLoading || !user) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-[430px] items-center justify-center bg-white">
+      <div className="flex flex-1 items-center justify-center">
         <p className="font-bitter text-lg text-[#5F5A74]">Memuat dashboard admin...</p>
       </div>
     );
@@ -86,7 +86,7 @@ export default function AdminDriversPage() {
   const pendingDrivers = pendingDriversQuery.data ?? [];
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-[#FCFBFF]">
+    <div className="flex flex-1 flex-col bg-[#FCFBFF]">
       <div className="flex flex-1 flex-col px-5 pb-8 pt-5">
         <Header profilePic={user.profilePic} />
 

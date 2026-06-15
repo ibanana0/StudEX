@@ -32,6 +32,11 @@ interface OrderDetail {
     phoneNumber: string | null;
     profilePic: string | null;
   };
+  driver?: {
+    id: number;
+    name: string;
+    driverProfile?: { qrisUrl?: string; avgRating?: number };
+  } | null;
 }
 
 export default function DriverOrderDetailPage({
@@ -58,10 +63,11 @@ export default function DriverOrderDetailPage({
   const getStageFromStatus = (status: string, currentStage: DriverOrderStage | null): DriverOrderStage => {
     switch (status) {
       case 'MENCARI_DRIVER': return 'preview';
-      case 'DIPROSES_DRIVER': 
+      case 'DIPROSES_DRIVER':
         return (currentStage === 'at_store') ? 'at_store' : 'accepted';
+      case 'DRIVER_DI_TOKO': return 'at_store';
       case 'DALAM_PERJALANAN': return 'delivering';
-      case 'DRIVER_SAMPAI': return 'payment';
+      case 'DRIVER_SAMPAI': return 'waiting_buyer';
       case 'PESANAN_TIBA': return 'payment';
       case 'COMPLETED': return 'payment';
       default: return 'preview';
@@ -84,7 +90,7 @@ export default function DriverOrderDetailPage({
           toast.error('Mohon maaf, pesanan ini baru saja dibatalkan oleh pembeli.');
           setAcceptedOrderId(null);
           setDriverOrderStage(null);
-          router.replace('/order/driver');
+          router.replace('/');
           return;
         }
 
@@ -111,7 +117,7 @@ export default function DriverOrderDetailPage({
 
   const displayChecked = useMemo(() => {
     if (!order) return checkedIndices;
-    if (stage === 'delivering' || stage === 'payment') {
+    if (stage === 'delivering' || stage === 'waiting_buyer' || stage === 'payment') {
       return new Set(order.itemsDescription.map((_, i) => i));
     }
     return checkedIndices;
@@ -119,7 +125,7 @@ export default function DriverOrderDetailPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white w-[430px] mx-auto">
+      <div className="flex flex-1 items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -127,7 +133,7 @@ export default function DriverOrderDetailPage({
 
   if (!order) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 p-6 text-center max-w-[430px] mx-auto bg-white">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
         <ShoppingBag className="w-12 h-12 text-muted-foreground" />
         <p className="font-semibold font-bitter">Pesanan tidak ditemukan</p>
         <button onClick={() => router.replace('/')} className="text-sm text-primary underline">
@@ -153,7 +159,7 @@ export default function DriverOrderDetailPage({
     } catch (error: any) {
       if (error.response?.status === 409) {
         toast.error('Yah, orderan sudah diambil driver lain.');
-        router.replace('/order/driver');
+        router.replace('/');
       } else {
         toast.error('Gagal mengambil order');
       }
@@ -163,10 +169,18 @@ export default function DriverOrderDetailPage({
     }
   };
 
-  const handleAtStore = () => {
-    setCheckedIndices(new Set());
-    advanceTo('at_store');
-    toast.success('Status diperbarui: Sudah di toko');
+  const handleAtStore = async () => {
+    setIsSubmitting(true);
+    try {
+      await api.patch(`/orders/${orderId}/status`, { status: 'DRIVER_DI_TOKO' });
+      setCheckedIndices(new Set());
+      advanceTo('at_store');
+      toast.success('Status diperbarui: Sudah di toko');
+    } catch (error) {
+      toast.error('Gagal memperbarui status');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleToggleItem = (i: number) => {
@@ -198,8 +212,8 @@ export default function DriverOrderDetailPage({
     setIsSubmitting(true);
     try {
       await api.patch(`/orders/${orderId}/status`, { status: 'DRIVER_SAMPAI' });
-      advanceTo('payment');
-      toast.success('Pesanan sudah sampai!');
+      advanceTo('waiting_buyer');
+      toast.success('Pesanan sudah sampai! Menunggu konfirmasi pembeli.');
     } catch (error) {
       toast.error('Gagal memperbarui status');
     } finally {
@@ -207,12 +221,20 @@ export default function DriverOrderDetailPage({
     }
   };
 
-  const handlePaymentReceived = () => {
-    toast.success('Pembayaran diterima! Pesanan selesai.');
-    setPaymentConfirmedOrderId(orderId);
-    setAcceptedOrderId(null);
-    setDriverOrderStage(null);
-    router.push('/');
+  const handlePaymentReceived = async () => {
+    setIsSubmitting(true);
+    try {
+      await api.patch(`/orders/${orderId}/status`, { status: 'COMPLETED' });
+      toast.success('Pembayaran diterima! Pesanan selesai.');
+      setPaymentConfirmedOrderId(orderId);
+      setAcceptedOrderId(null);
+      setDriverOrderStage(null);
+      router.push('/');
+    } catch (error) {
+      toast.error('Gagal menyelesaikan pesanan');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const statusSubtitle: Record<DriverOrderStage, string> = {
@@ -220,6 +242,7 @@ export default function DriverOrderDetailPage({
     accepted: 'Silahkan menuju ke toko',
     at_store: 'Silahkan ambil pesanan',
     delivering: 'Silahkan antar pesanan',
+    waiting_buyer: 'Menunggu pembeli menekan "Terima Pesanan"',
     payment: 'Tunjukkan QRIS kepada pembeli',
   };
 
@@ -230,17 +253,12 @@ export default function DriverOrderDetailPage({
     shopName: order.shopName,
   }));
 
-  const waUrl = order.buyer.phoneNumber 
-    ? `https://wa.me/${order.buyer.phoneNumber.replace(/^0/, '62')}` 
-    : '#';
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${order.buyerLat},${order.buyerLng}`;
-
   return (
-    <div className="flex flex-col min-h-screen max-w-[430px] mx-auto bg-white">
+    <>
       <div className="flex items-center gap-2 px-5 pt-5 pb-2">
         <button
           type="button"
-          onClick={() => router.push('/order/driver')}
+          onClick={() => router.push('/')}
           className="flex items-center gap-1 text-sm text-[#1B1B24] font-bold hover:opacity-70 transition-opacity font-bitter"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -255,7 +273,7 @@ export default function DriverOrderDetailPage({
           <QrisPaymentView
             driverName={user.name}
             driverId={user.driverProfile?.id ?? 1}
-            qrisUrl={user.driverProfile?.qrisUrl ?? ''}
+            qrisUrl={order.driver?.driverProfile?.qrisUrl ?? ''}
           />
         ) : (
           <>
@@ -284,16 +302,6 @@ export default function DriverOrderDetailPage({
               deliveryLng={Number(order.buyerLng)}
             />
             
-            {(stage === 'delivering' || stage === 'at_store' || stage === 'accepted') && (
-              <div className="flex gap-2">
-                <a href={waUrl} target="_blank" rel="noreferrer" className="flex-1 flex justify-center py-3 bg-[#E8F5E9] text-[#2E7D32] rounded-xl text-sm font-semibold font-bitter">
-                  Chat Pembeli
-                </a>
-                <a href={mapsUrl} target="_blank" rel="noreferrer" className="flex-1 flex justify-center py-3 bg-[#E3F2FD] text-[#1565C0] rounded-xl text-sm font-semibold font-bitter">
-                  Buka Rute Maps
-                </a>
-              </div>
-            )}
           </>
         )}
       </div>
@@ -350,12 +358,25 @@ export default function DriverOrderDetailPage({
           </button>
         )}
 
+        {stage === 'waiting_buyer' && (
+          <button
+            type="button"
+            disabled
+            className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 border border-gray-200 text-primary font-bitter font-semibold text-base opacity-60 cursor-not-allowed"
+          >
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Menunggu konfirmasi pembeli...
+          </button>
+        )}
+
         {stage === 'payment' && (
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={handlePaymentReceived}
-            className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-2xl py-4 font-bitter font-semibold text-base"
+            className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-2xl py-4 font-bitter font-semibold text-base disabled:opacity-70"
           >
+            {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
             Saya sudah menerima pembayaran
           </button>
         )}
@@ -370,6 +391,6 @@ export default function DriverOrderDetailPage({
           onCancel={() => setShowConfirm(false)}
         />
       )}
-    </div>
+    </>
   );
 }

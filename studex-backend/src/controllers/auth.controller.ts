@@ -24,6 +24,9 @@ const authUserSelect = {
   driverProfile: {
     select: {
       id: true,
+      isActive: true,
+      avgRating: true,
+      totalTrips: true,
     },
   },
 } satisfies Prisma.UserSelect;
@@ -34,6 +37,7 @@ type AuthUser = Prisma.UserGetPayload<{
 
 type PublicUser = Omit<AuthUser, 'password' | 'googleId' | 'driverProfile'> & {
   hasDriverApplication: boolean;
+  driverProfile: AuthUser['driverProfile'];
 };
 
 function generateToken(userId: number, role: Role): string {
@@ -76,10 +80,11 @@ function isProfileComplete(user: Pick<AuthUser, 'username' | 'name' | 'phoneNumb
 }
 
 function toPublicUser(user: AuthUser): PublicUser {
-  const { password: _password, googleId: _googleId, driverProfile: _driverProfile, ...publicUser } = user;
+  const { password: _password, googleId: _googleId, driverProfile, ...publicUser } = user;
   return {
     ...publicUser,
-    hasDriverApplication: Boolean(user.driverProfile),
+    hasDriverApplication: Boolean(driverProfile),
+    driverProfile: driverProfile ?? null,
   };
 }
 

@@ -179,14 +179,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshMe]);
 
   useEffect(() => {
-    if (token || user) {
-      return;
-    }
-
-    setIsLoading(false);
-  }, [token, user]);
-
-  useEffect(() => {
     if (!user) {
       useUserStore.getState().resetUser();
       return;

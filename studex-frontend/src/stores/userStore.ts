@@ -1,7 +1,6 @@
 import { create } from 'zustand';
-import type { Role, User } from '@/types/user';
+import type { Role, User, UserDriverProfile } from '@/types/user';
 import type { DriverOrderStage } from '@/types/order';
-import { DUMMY_DRIVER_PROFILE } from '@/dummy_payload/user';
 
 // ── User Store ───────────────────────────────────────────────────────────────
 // Reactive global state for the logged-in user.
@@ -20,10 +19,11 @@ interface UserState {
   role: Role;
   isDriverVerified: boolean;
   hasDriverAccount: boolean;
-  driverProfile: typeof DUMMY_DRIVER_PROFILE;
+  driverProfile: UserDriverProfile | null;
 
   /** Switch role (called by profile mode toggle) */
   setRole: (role: Role) => void;
+  setDriverProfile: (profile: UserDriverProfile | null) => void;
   hydrateFromAuth: (user: User, role: Role, hasDriverAccount: boolean) => void;
   resetUser: () => void;
 
@@ -61,13 +61,24 @@ const initialUserState = {
   role: 'USER' as Role,
   isDriverVerified: false,
   hasDriverAccount: false,
-  driverProfile: DUMMY_DRIVER_PROFILE,
+  driverProfile: null as UserDriverProfile | null,
 };
+
+function normalizeDriverProfile(profile: User['driverProfile']): UserDriverProfile | null {
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    isActive: profile.isActive,
+    avgRating: typeof profile.avgRating === 'string' ? Number(profile.avgRating) : profile.avgRating,
+    totalTrips: profile.totalTrips,
+  };
+}
 
 export const useUserStore = create<UserState>((set) => ({
   ...initialUserState,
 
   setRole: (role) => set({ role }),
+  setDriverProfile: (profile) => set({ driverProfile: profile }),
   hydrateFromAuth: (user, role, hasDriverAccount) =>
     set({
       id: user.id,
@@ -82,6 +93,7 @@ export const useUserStore = create<UserState>((set) => ({
       role,
       isDriverVerified: user.isDriverVerified,
       hasDriverAccount: hasDriverAccount || Boolean(user.hasDriverApplication),
+      driverProfile: normalizeDriverProfile(user.driverProfile ?? null),
     }),
   resetUser: () =>
     set({

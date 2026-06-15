@@ -7,6 +7,7 @@ declare global {
         id: number;
         role: Role;
         isDriverVerified: boolean;
+        accountStatus?: string;
       };
     }
   }

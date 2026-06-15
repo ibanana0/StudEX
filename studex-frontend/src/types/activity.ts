@@ -2,7 +2,7 @@
 
 export type ActivityTab = 'dalam-proses' | 'riwayat';
 
-export type TransactionStatus = 'diproses' | 'menunggu' | 'selesai';
+export type TransactionStatus = 'diproses' | 'menunggu' | 'aktif' | 'selesai' | 'dibatalkan';
 
 export type TransactionIconVariant = 'print' | 'cup';
 

@@ -29,19 +29,19 @@ export default function QrisPaymentView({ driverName, driverId, qrisUrl }: QrisP
 
       {/* QRIS card */}
       <div className="border border-gray-200 rounded-2xl overflow-hidden p-4 flex flex-col items-center gap-4">
-        {/* QRIS image */}
-        <div className="w-full rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center min-h-[280px]">
+        {/* QRIS image — fixed square frame, object-contain */}
+        <div className="w-[280px] h-[280px] rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center border border-dashed border-gray-200">
           {qrisUrl && !qrisUrl.startsWith('/dummy') ? (
             <Image
               src={qrisUrl}
               alt="QRIS Driver"
-              width={320}
-              height={320}
-              className="object-contain w-full"
+              width={280}
+              height={280}
+              unoptimized
+              className="object-contain w-full h-full p-2"
             />
           ) : (
-            /* Placeholder shown when dummy/missing qrisUrl */
-            <div className="flex flex-col items-center gap-3 py-12 text-gray-400">
+            <div className="flex flex-col items-center gap-3 text-gray-400">
               <QrCode className="w-24 h-24" strokeWidth={1} />
               <p className="text-xs text-center max-w-[160px] leading-relaxed">
                 QRIS driver akan ditampilkan di sini

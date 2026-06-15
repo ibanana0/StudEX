@@ -12,7 +12,7 @@ interface OrderInfoCardProps {
   shopName: string;
   estimatedTime: string;
   status: OrderStatus;
-  driver: BuyerOrderDriver;
+  driver?: BuyerOrderDriver | null;
 }
 
 const STATUS_BADGE: Partial<Record<OrderStatus, { label: string; className: string }>> = {
@@ -33,7 +33,6 @@ export default function OrderInfoCard({
 }: OrderInfoCardProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const badge = STATUS_BADGE[status];
-  const initial = driver.name.charAt(0).toUpperCase();
 
   return (
     <>
@@ -58,52 +57,61 @@ export default function OrderInfoCard({
         </div>
 
         {/* Driver row */}
-        <div className="flex items-center gap-3 px-4 py-4">
-          {/* Avatar */}
-          <div className="relative shrink-0">
-            <div className="w-12 h-12 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center">
-              {driver.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={driver.avatarUrl} alt={driver.name} className="object-cover w-full h-full" />
-              ) : (
-                <User className="w-6 h-6 text-primary/60" strokeWidth={1.5} />
-              )}
+        {driver ? (
+          <div className="flex items-center gap-3 px-4 py-4">
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div className="w-12 h-12 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center">
+                {driver.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={driver.avatarUrl} alt={driver.name} className="object-cover w-full h-full" />
+                ) : (
+                  <User className="w-6 h-6 text-primary/60" strokeWidth={1.5} />
+                )}
+              </div>
+              {/* Star badge */}
+              <div className="absolute -bottom-0.5 -left-0.5 w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center">
+                <Star className="w-2.5 h-2.5 fill-white text-white" />
+              </div>
             </div>
-            {/* Star badge */}
-            <div className="absolute -bottom-0.5 -left-0.5 w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center">
-              <Star className="w-2.5 h-2.5 fill-white text-white" />
-            </div>
-          </div>
 
-          {/* Driver info */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold font-bitter text-[#1B1B24]">{driver.name}</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xs text-gray-500">{driver.faculty}</span>
-              <span className="text-gray-300">•</span>
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-              <span className="text-xs font-semibold text-[#1B1B24]">{driver.rating}</span>
+            {/* Driver info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold font-bitter text-[#1B1B24]">{driver.name}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-xs text-gray-500">{driver.faculty}</span>
+                <span className="text-gray-300">•</span>
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <span className="text-xs font-semibold text-[#1B1B24]">{driver.rating}</span>
+              </div>
             </div>
-          </div>
 
-          {/* Chat button */}
-          <button
-            type="button"
-            onClick={() => setIsChatOpen(true)}
-            className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center shrink-0 hover:bg-gray-50 transition-colors"
-          >
-            <MessageSquare className="w-5 h-5 text-primary" />
-          </button>
-        </div>
+            {/* Chat button */}
+            <button
+              type="button"
+              onClick={() => setIsChatOpen(true)}
+              className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center shrink-0 hover:bg-gray-50 transition-colors"
+            >
+              <MessageSquare className="w-5 h-5 text-primary" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-4 bg-gray-50/50 text-gray-500 text-sm">
+            <User className="w-5 h-5 text-gray-400" />
+            <span>Menunggu driver mengambil pesanan...</span>
+          </div>
+        )}
       </div>
 
-      <ChatSheet
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        targetName={driver.name}
-        targetRole="driver"
-        phoneNumber={driver.phone}
-      />
+      {driver && (
+        <ChatSheet
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          targetName={driver.name}
+          targetRole="driver"
+          phoneNumber={driver.phone}
+        />
+      )}
     </>
   );
 }

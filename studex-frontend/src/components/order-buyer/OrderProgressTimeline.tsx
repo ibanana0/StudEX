@@ -32,7 +32,8 @@ export function deriveProgressSteps(
     'DALAM_PERJALANAN',
     'DRIVER_SAMPAI',
   ];
-  const currentIdx = order.indexOf(status);
+  const allFulfilled = status === 'PESANAN_TIBA' || status === 'COMPLETED';
+  const currentIdx = allFulfilled ? order.length : order.indexOf(status);
 
   const defs: Array<{ label: string; description: string; mapTo: OrderStatus }> = [
     {

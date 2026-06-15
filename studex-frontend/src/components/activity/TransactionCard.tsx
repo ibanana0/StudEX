@@ -1,5 +1,7 @@
+import { useRouter } from 'next/navigation';
 import type { Transaction } from '@/types';
 import StatusBadge from './StatusBadge';
+import { useUserStore } from '@/stores/userStore';
 
 // ── Inline SVG Icons ─────────────────────────────────────────────────────────
 
@@ -34,11 +36,24 @@ interface TransactionCardProps {
 }
 
 export default function TransactionCard({ tx }: TransactionCardProps) {
-  const isProcessing = tx.status === 'diproses';
+  const router = useRouter();
+  const role = useUserStore((s) => s.role);
+  const isDriver = role === 'DRIVER';
+
+  const isProcessing = tx.status === 'diproses' || tx.status === 'menunggu' || tx.status === 'aktif';
+  
+  // Ambil ID numerik dari format "STX-123" atau "TRX-8921"
+  const numericId = parseInt(tx.id.replace(/\D/g, ''), 10);
+
+  const handleActionClick = () => {
+    if (isNaN(numericId)) return;
+    const url = isDriver ? `/order/driver/${numericId}` : `/order/buyer/${numericId}`;
+    router.push(url);
+  };
 
   return (
     <div
-      className="flex flex-col gap-2 p-4 rounded-xl border border-[#F0F0F5] bg-white"
+      className="flex flex-col gap-2 p-4 rounded-xl border border-[#F0F0F5] bg-white animate-in fade-in slide-in-from-bottom-2 duration-200"
     >
       {/* Header: ID + date + status */}
       <div className="flex justify-between items-center pb-2 border-b border-[#F0F0F5]">
@@ -68,16 +83,24 @@ export default function TransactionCard({ tx }: TransactionCardProps) {
       </div>
 
       {/* Footer: action button */}
-      {isProcessing && (
-        <button className="w-full py-2 rounded-full bg-primary text-white text-xs font-semibold leading-4 shadow-sm hover:opacity-90 transition-opacity active:scale-[0.98]">
+      {isProcessing ? (
+        <button
+          type="button"
+          onClick={handleActionClick}
+          className="w-full py-2 rounded-full bg-primary text-white text-xs font-semibold leading-4 shadow-sm hover:opacity-90 transition-opacity active:scale-[0.98]"
+        >
           Lacak
         </button>
-      )}
-      {!isProcessing && (
-        <button className="w-full py-2 rounded-full bg-[#EDE9F8] text-[#464555] text-xs font-semibold leading-4 shadow-sm hover:bg-[#e4dff5] transition-colors active:scale-[0.98]">
+      ) : (
+        <button
+          type="button"
+          onClick={handleActionClick}
+          className="w-full py-2 rounded-full bg-[#EDE9F8] text-[#464555] text-xs font-semibold leading-4 shadow-sm hover:bg-[#e4dff5] transition-colors active:scale-[0.98]"
+        >
           Detail
         </button>
       )}
     </div>
   );
 }
+

@@ -37,11 +37,17 @@ import { Request, Response, NextFunction } from 'express';
            id: true,
            role: true,
            isDriverVerified: true,
+           accountStatus: true,
          },
        });
 
        if (!user) {
          res.status(401).json({ message: 'Unauthorized: User not found' });
+         return;
+       }
+
+       if (user.accountStatus === 'SUSPENDED' || user.accountStatus === 'BANNED') {
+         res.status(403).json({ message: `Forbidden: Account is ${user.accountStatus.toLowerCase()}` });
          return;
        }
 

@@ -6,6 +6,8 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '@/utils/api';
+
 
 import {
   BubbleProgress,
@@ -79,19 +81,35 @@ export default function OrderPage() {
     }
   };
 
-  // ── Submit (placeholder) ───────────────────────────────────────────────────
-  const onSubmit = (values: OrderFormValues) => {
-    console.log('[OrderWizard] Submitting order:', values);
-    toast.success('Pesanan berhasil dibuat! (placeholder)');
-    // TODO: Wire up backend API call
-    // router.push(`/order/${newOrderId}`);
+  // ── Submit ──────────────────────────────────────────────────────────────────
+  const onSubmit = async (values: OrderFormValues) => {
+    try {
+      const response = await api.post('/orders', {
+        shopName: values.shopName,
+        itemsDescription: values.items.map((item) => ({
+          name: item.name,
+          qty: item.qty,
+          note: item.note || undefined,
+        })),
+        notes: values.notes || undefined,
+        buyerLat: values.buyerLat,
+        buyerLng: values.buyerLng,
+      });
+
+      const newOrderId = response.data.data.id;
+      toast.success('Pesanan berhasil dibuat!');
+      router.push(`/order/buyer/${newOrderId}`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Gagal membuat pesanan');
+    }
   };
+
 
   // ── Step 2 has its own layout (full-page map + floating bottom sheet) ─────
   const isLocationStep = step === 1;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col w-[430px] mx-auto relative">
+    <div className="flex flex-1 flex-col relative">
       {/* ── Sticky Header (hidden on location step — uses floating elements instead) ── */}
       {!isLocationStep && (
         <div className="flex items-center gap-3 p-4 border-b sticky top-0 bg-background z-10">
