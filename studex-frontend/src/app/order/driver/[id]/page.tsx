@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Truck, Store, ShoppingBag, Loader2 } from 'lucide-react';
+import { ArrowLeft, Truck, Store, ShoppingBag, Loader2, CheckCircle2 } from 'lucide-react';
 import { useUserStore } from '@/stores/userStore';
 import type { DriverOrderStage } from '@/types/order';
 import toast from 'react-hot-toast';
@@ -15,6 +15,7 @@ import {
   ConfirmAcceptModal,
   QrisPaymentView,
 } from '@/components/order-driver';
+import ConfirmationModal from '@/components/modal/ConfirmationModal';
 import api from '@/utils/api';
 
 interface OrderDetail {
@@ -79,6 +80,19 @@ export default function DriverOrderDetailPage({
   const [checkedIndices, setCheckedIndices] = useState<Set<number>>(new Set());
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusConfirmConfig, setStatusConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    icon?: any;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -177,11 +191,23 @@ export default function DriverOrderDetailPage({
       setCheckedIndices(new Set());
       advanceTo('at_store');
       toast.success('Status diperbarui: Sudah di toko');
+      setStatusConfirmConfig((prev) => ({ ...prev, isOpen: false }));
     } catch (error) {
       toast.error('Gagal memperbarui status');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const triggerAtStoreConfirm = () => {
+    setStatusConfirmConfig({
+      isOpen: true,
+      title: 'Sudah Sampai di Toko?',
+      description: 'Pastikan Anda sudah berada di lokasi toko untuk mulai membeli barang belanjaan pembeli.',
+      confirmLabel: 'Ya, Saya di Toko',
+      icon: Store,
+      onConfirm: handleAtStore,
+    });
   };
 
   const handleToggleItem = (i: number) => {
@@ -193,20 +219,32 @@ export default function DriverOrderDetailPage({
   };
 
   const handleItemsPicked = async () => {
-    if (checkedIndices.size < order.itemsDescription.length) {
-      toast.error('Centang semua pesanan terlebih dahulu');
-      return;
-    }
     setIsSubmitting(true);
     try {
       await api.patch(`/orders/${orderId}/status`, { status: 'DALAM_PERJALANAN' });
       advanceTo('delivering');
       toast.success('Pesanan diambil! Menuju titik antar...');
+      setStatusConfirmConfig((prev) => ({ ...prev, isOpen: false }));
     } catch (error) {
       toast.error('Gagal memperbarui status');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const triggerItemsPickedConfirm = () => {
+    if (checkedIndices.size < order.itemsDescription.length) {
+      toast.error('Centang semua pesanan terlebih dahulu');
+      return;
+    }
+    setStatusConfirmConfig({
+      isOpen: true,
+      title: 'Pesanan Selesai Diambil?',
+      description: 'Apakah Anda sudah membeli semua barang belanjaan dan siap untuk memulai pengantaran?',
+      confirmLabel: 'Ya, Mulai Mengantar',
+      icon: ShoppingBag,
+      onConfirm: handleItemsPicked,
+    });
   };
 
   const handleDelivered = async () => {
@@ -215,11 +253,23 @@ export default function DriverOrderDetailPage({
       await api.patch(`/orders/${orderId}/status`, { status: 'DRIVER_SAMPAI' });
       advanceTo('waiting_buyer');
       toast.success('Pesanan sudah sampai! Menunggu konfirmasi pembeli.');
+      setStatusConfirmConfig((prev) => ({ ...prev, isOpen: false }));
     } catch (error) {
       toast.error('Gagal memperbarui status');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const triggerDeliveredConfirm = () => {
+    setStatusConfirmConfig({
+      isOpen: true,
+      title: 'Sudah Sampai di Tujuan?',
+      description: 'Apakah Anda sudah sampai di titik pengantaran dan siap menemui pembeli?',
+      confirmLabel: 'Ya, Saya Sudah Sampai',
+      icon: Truck,
+      onConfirm: handleDelivered,
+    });
   };
 
   const handlePaymentReceived = async () => {
@@ -230,12 +280,24 @@ export default function DriverOrderDetailPage({
       setPaymentConfirmedOrderId(orderId);
       setAcceptedOrderId(null);
       setDriverOrderStage(null);
+      setStatusConfirmConfig((prev) => ({ ...prev, isOpen: false }));
       router.push('/');
     } catch (error) {
       toast.error('Gagal menyelesaikan pesanan');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const triggerPaymentReceivedConfirm = () => {
+    setStatusConfirmConfig({
+      isOpen: true,
+      title: 'Konfirmasi Pembayaran?',
+      description: 'Pastikan Anda sudah menerima pembayaran (baik tunai atau transfer m-banking) sebelum menyelesaikan pesanan ini.',
+      confirmLabel: 'Ya, Pembayaran Diterima',
+      icon: CheckCircle2,
+      onConfirm: handlePaymentReceived,
+    });
   };
 
   const statusSubtitle: Record<DriverOrderStage, string> = {
@@ -327,7 +389,7 @@ export default function DriverOrderDetailPage({
         {stage === 'accepted' && (
           <button
             type="button"
-            onClick={handleAtStore}
+            onClick={triggerAtStoreConfirm}
             className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-2xl py-4 font-bitter font-semibold text-base"
           >
             <Store className="w-5 h-5" />
@@ -339,7 +401,7 @@ export default function DriverOrderDetailPage({
           <button
             type="button"
             disabled={isSubmitting}
-            onClick={handleItemsPicked}
+            onClick={triggerItemsPickedConfirm}
             className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-2xl py-4 font-bitter font-semibold text-base disabled:opacity-70"
           >
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Store className="w-5 h-5" />}
@@ -351,7 +413,7 @@ export default function DriverOrderDetailPage({
           <button
             type="button"
             disabled={isSubmitting}
-            onClick={handleDelivered}
+            onClick={triggerDeliveredConfirm}
             className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-2xl py-4 font-bitter font-semibold text-base disabled:opacity-70"
           >
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Truck className="w-5 h-5" />}
@@ -374,7 +436,7 @@ export default function DriverOrderDetailPage({
           <button
             type="button"
             disabled={isSubmitting}
-            onClick={handlePaymentReceived}
+            onClick={triggerPaymentReceivedConfirm}
             className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-2xl py-4 font-bitter font-semibold text-base disabled:opacity-70"
           >
             {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
@@ -392,6 +454,17 @@ export default function DriverOrderDetailPage({
           onCancel={() => setShowConfirm(false)}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={statusConfirmConfig.isOpen}
+        onClose={() => setStatusConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={statusConfirmConfig.onConfirm}
+        title={statusConfirmConfig.title}
+        description={statusConfirmConfig.description}
+        confirmLabel={statusConfirmConfig.confirmLabel}
+        icon={statusConfirmConfig.icon}
+        isLoading={isSubmitting}
+      />
     </>
   );
 }
