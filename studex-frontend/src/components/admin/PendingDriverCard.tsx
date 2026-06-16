@@ -3,6 +3,24 @@
 import { BadgeCheck, Ban, ExternalLink, Mail, Phone } from 'lucide-react';
 import type { PendingDriverApplication } from '@/types';
 
+function openDataUrl(dataUrl: string) {
+  let objectUrl: string | null = null;
+  try {
+    const [header, base64] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)?.[1] ?? 'application/octet-stream';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+    objectUrl = URL.createObjectURL(blob);
+    window.open(objectUrl, '_blank', 'noopener,noreferrer');
+  } catch {
+    window.open(dataUrl, '_blank', 'noopener,noreferrer');
+  } finally {
+    if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl!), 10_000);
+  }
+}
+
 interface PendingDriverCardProps {
   application: PendingDriverApplication;
   isVerifying: boolean;
@@ -74,28 +92,26 @@ export default function PendingDriverCard({
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <a
-          href={application.ktmUrl}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
+          onClick={() => openDataUrl(application.ktmUrl)}
           className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary"
         >
           <span className="flex items-center justify-center gap-2">
             KTM
             <ExternalLink className="h-4 w-4" />
           </span>
-        </a>
-        <a
-          href={application.qrisUrl}
-          target="_blank"
-          rel="noreferrer"
+        </button>
+        <button
+          type="button"
+          onClick={() => openDataUrl(application.qrisUrl)}
           className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary"
         >
           <span className="flex items-center justify-center gap-2">
             QRIS
             <ExternalLink className="h-4 w-4" />
           </span>
-        </a>
+        </button>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">

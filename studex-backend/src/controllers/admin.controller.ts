@@ -81,6 +81,7 @@ export const verifyDriver = async (req: Request, res: Response): Promise<void> =
       where: { id: parsedUserId },
       data: {
         isDriverVerified: true,
+        role: 'DRIVER',
       },
       select: {
         id: true,
