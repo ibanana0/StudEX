@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { getPendingDrivers, verifyDriver, rejectDriver, getPendingReports, updateReportStatus, updateUserStatus } from '../controllers/admin.controller';
+import {
+  getPendingDrivers,
+  verifyDriver,
+  rejectDriver,
+  getPendingReports,
+  updateReportStatus,
+  updateUserStatus,
+  getAllUsers,
+} from '../controllers/admin.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireRole } from '../middlewares/role.middleware';
 
@@ -17,6 +25,7 @@ router.get('/reports', getPendingReports);
 router.patch('/reports/:id', updateReportStatus);
 
 // User account status management
+router.get('/users', getAllUsers);
 router.patch('/users/:userId/status', updateUserStatus);
 
 export default router;

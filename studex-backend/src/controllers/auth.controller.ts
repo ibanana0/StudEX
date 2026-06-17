@@ -21,6 +21,8 @@ const authUserSelect = {
   universitas: true,
   role: true,
   isDriverVerified: true,
+  accountStatus: true,
+  suspendedUntil: true,
   driverProfile: {
     select: {
       id: true,
@@ -176,6 +178,39 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+async function checkAccountStatus(
+  user: { id: number; accountStatus: string; suspendedUntil: Date | null },
+  res: Response
+): Promise<boolean> {
+  if (user.accountStatus === 'BANNED') {
+    res.status(403).json({
+      message: 'Akun Anda telah diblokir secara permanen dari StudEx karena melanggar aturan.',
+    });
+    return false;
+  }
+
+  if (user.accountStatus === 'SUSPENDED') {
+    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      const remainingMs = user.suspendedUntil.getTime() - Date.now();
+      const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+      res.status(403).json({
+        message: `Akun Anda sedang ditangguhkan sementara. Silakan coba lagi dalam ${remainingHours} jam.`,
+      });
+      return false;
+    } else {
+      // Auto unsuspend
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { accountStatus: 'ACTIVE', suspendedUntil: null },
+      });
+      user.accountStatus = 'ACTIVE';
+      user.suspendedUntil = null;
+    }
+  }
+
+  return true;
+}
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const email = sanitizeString(req.body.email)?.toLowerCase() ?? null;
@@ -204,6 +239,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       res.status(401).json({ message: 'Invalid email or password' });
+      return;
+    }
+
+    const canLogin = await checkAccountStatus(user as any, res);
+    if (!canLogin) {
       return;
     }
 
@@ -279,6 +319,11 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
         },
         select: authUserSelect,
       });
+    }
+
+    const canLogin = await checkAccountStatus(user as any, res);
+    if (!canLogin) {
+      return;
     }
 
     const token = generateToken(user.id, user.role);

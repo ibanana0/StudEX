@@ -55,6 +55,7 @@ model User {
   universitas        String?
   role               Role           @default(USER)
   accountStatus      AccountStatus  @default(ACTIVE) @map("account_status")
+  suspendedUntil     DateTime?      @map("suspended_until")
   isDriverVerified   Boolean        @default(false) @map("is_driver_verified")
   createdAt          DateTime       @default(now()) @map("created_at")
 

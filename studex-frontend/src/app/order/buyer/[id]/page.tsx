@@ -16,7 +16,7 @@
 
 import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShoppingBag, Loader2, CheckCircle2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import toast from 'react-hot-toast';
 import BottomNav from '@/components/ui/BottomNav';
@@ -28,6 +28,7 @@ import {
 } from '@/components/order-buyer';
 import { useOrderPolling } from '@/hooks/useOrderPolling';
 import { useAuth } from '@/context/AuthContext';
+import ReportModal from '@/components/modal/ReportModal';
 import api from '@/utils/api';
 
 export default function BuyerOrderTrackingPage({
@@ -40,6 +41,7 @@ export default function BuyerOrderTrackingPage({
   const router = useRouter();
   const { sessionMode, isLoading: isAuthLoading } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -61,7 +63,8 @@ export default function BuyerOrderTrackingPage({
     );
   }, [order]);
 
-  const isArrived = order?.status === 'DRIVER_SAMPAI' || order?.status === 'PESANAN_TIBA' || order?.status === 'COMPLETED';
+  const isCompleted = order?.status === 'COMPLETED';
+  const isArrived = order?.status === 'DRIVER_SAMPAI' || order?.status === 'PESANAN_TIBA';
 
   const handleReceive = async () => {
     if (!order) return;
@@ -140,6 +143,7 @@ export default function BuyerOrderTrackingPage({
           estimatedTime={order.estimatedTime ?? ''}
           status={order.status}
           driver={order.driver as any}
+          onReportClick={order.driver ? () => setIsReportOpen(true) : undefined}
         />
 
         <DeliveryLocationCard
@@ -154,7 +158,16 @@ export default function BuyerOrderTrackingPage({
 
       {/* ── Bottom button ── */}
       <div className="px-5 pb-4 pt-2">
-        {isArrived ? (
+        {isCompleted ? (
+          <button
+            type="button"
+            disabled
+            className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 bg-green-50 text-green-600 font-bitter font-semibold text-base cursor-not-allowed"
+          >
+            <CheckCircle2 className="w-5 h-5" />
+            Pesanan Selesai
+          </button>
+        ) : isArrived ? (
           <button
             type="button"
             onClick={handleReceive}
@@ -175,6 +188,16 @@ export default function BuyerOrderTrackingPage({
       </div>
 
       <BottomNav />
+
+      {isReportOpen && order.driver && (
+        <ReportModal
+          reportedId={order.driver.id}
+          reportedName={order.driver.name}
+          orderId={order.id}
+          onClose={() => setIsReportOpen(false)}
+          onSuccess={() => setIsReportOpen(false)}
+        />
+      )}
     </>
   );
 }

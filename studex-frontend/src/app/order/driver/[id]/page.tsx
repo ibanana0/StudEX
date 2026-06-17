@@ -16,6 +16,7 @@ import {
   QrisPaymentView,
 } from '@/components/order-driver';
 import ConfirmationModal from '@/components/modal/ConfirmationModal';
+import ReportModal from '@/components/modal/ReportModal';
 import api from '@/utils/api';
 
 interface OrderDetail {
@@ -71,7 +72,7 @@ export default function DriverOrderDetailPage({
       case 'DALAM_PERJALANAN': return 'delivering';
       case 'DRIVER_SAMPAI': return 'waiting_buyer';
       case 'PESANAN_TIBA': return 'payment';
-      case 'COMPLETED': return 'payment';
+      case 'COMPLETED': return 'completed';
       default: return 'preview';
     }
   };
@@ -80,6 +81,7 @@ export default function DriverOrderDetailPage({
   const [checkedIndices, setCheckedIndices] = useState<Set<number>>(new Set());
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [statusConfirmConfig, setStatusConfirmConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -132,7 +134,7 @@ export default function DriverOrderDetailPage({
 
   const displayChecked = useMemo(() => {
     if (!order) return checkedIndices;
-    if (stage === 'delivering' || stage === 'waiting_buyer' || stage === 'payment') {
+    if (stage === 'delivering' || stage === 'waiting_buyer' || stage === 'payment' || stage === 'completed') {
       return new Set(order.itemsDescription.map((_, i) => i));
     }
     return checkedIndices;
@@ -307,6 +309,7 @@ export default function DriverOrderDetailPage({
     delivering: 'Silahkan antar pesanan',
     waiting_buyer: 'Menunggu pembeli menekan "Terima Pesanan"',
     payment: 'Tunjukkan QRIS kepada pembeli',
+    completed: 'Pesanan telah selesai',
   };
 
   const formattedItems = order.itemsDescription.map(item => ({
@@ -363,6 +366,8 @@ export default function DriverOrderDetailPage({
               deliveryAddress={order.deliveryAddress || 'Lihat di Maps'}
               deliveryLat={Number(order.buyerLat)}
               deliveryLng={Number(order.buyerLng)}
+              onReportClick={() => setIsReportOpen(true)}
+              isCompleted={stage === 'completed'}
             />
             
           </>
@@ -443,6 +448,17 @@ export default function DriverOrderDetailPage({
             Saya sudah menerima pembayaran
           </button>
         )}
+
+        {stage === 'completed' && (
+          <button
+            type="button"
+            disabled
+            className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 bg-green-50 text-green-600 font-bitter font-semibold text-base cursor-not-allowed"
+          >
+            <CheckCircle2 className="w-5 h-5" />
+            Pesanan Selesai
+          </button>
+        )}
       </div>
 
       {/* No BottomNav in detail page if you want full height for map/actions, but here I keep it per original layout */}
@@ -465,6 +481,16 @@ export default function DriverOrderDetailPage({
         icon={statusConfirmConfig.icon}
         isLoading={isSubmitting}
       />
+
+      {isReportOpen && (
+        <ReportModal
+          reportedId={order.buyer.id}
+          reportedName={order.buyer.name}
+          orderId={order.id}
+          onClose={() => setIsReportOpen(false)}
+          onSuccess={() => setIsReportOpen(false)}
+        />
+      )}
     </>
   );
 }

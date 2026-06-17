@@ -1,11 +1,20 @@
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
-import { AccountStatus, ReportStatus } from '@prisma/client';
+import { AccountStatus, ReportStatus, OrderStatus, CancelledBy } from '@prisma/client';
 
 function parseRouteId(rawId: string | string[] | undefined): number | null {
   const routeValue = Array.isArray(rawId) ? rawId[0] : rawId;
   const parsed = Number.parseInt(routeValue ?? '', 10);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function mergeStepTimestamps(existing: unknown, status: string, iso: string): any {
+  const base =
+    existing && typeof existing === 'object' && !Array.isArray(existing)
+      ? { ...(existing as Record<string, string>) }
+      : {};
+  base[status] = iso;
+  return base;
 }
 
 export const getPendingDrivers = async (_req: Request, res: Response): Promise<void> => {
@@ -210,7 +219,7 @@ export const updateUserStatus = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const { status } = req.body;
+    const { status, durationHours } = req.body;
     const validStatuses: AccountStatus[] = ['ACTIVE', 'SUSPENDED', 'BANNED'];
     if (!status || !validStatuses.includes(status)) {
       res.status(400).json({ message: `status must be one of: ${validStatuses.join(', ')}` });
@@ -229,15 +238,61 @@ export const updateUserStatus = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    let suspendedUntil: Date | null = null;
+    if (status === 'SUSPENDED') {
+      const hours = Number(durationHours);
+      if (Number.isNaN(hours) || hours <= 0) {
+        res.status(400).json({ message: 'durationHours must be a positive number when status is SUSPENDED' });
+        return;
+      }
+      suspendedUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
+    }
+
+    // Cancel any active orders for suspended/banned users
+    if (status === 'SUSPENDED' || status === 'BANNED') {
+      const activeOrders = await prisma.order.findMany({
+        where: {
+          OR: [
+            { userId: parsedUserId },
+            { driverId: parsedUserId },
+          ],
+          status: {
+            notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+          },
+        },
+      });
+
+      const nowIso = new Date().toISOString();
+      for (const order of activeOrders) {
+        const cancelReason = order.userId === parsedUserId
+          ? 'Pesanan dibatalkan otomatis karena akun pembeli ditangguhkan/diblokir oleh Admin.'
+          : 'Pesanan dibatalkan otomatis karena akun driver ditangguhkan/diblokir oleh Admin.';
+
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: OrderStatus.CANCELLED,
+            cancelledBy: CancelledBy.SYSTEM,
+            cancelReason,
+            stepTimestamps: mergeStepTimestamps(order.stepTimestamps, 'CANCELLED', nowIso),
+          },
+        });
+      }
+    }
+
     const updated = await prisma.user.update({
       where: { id: parsedUserId },
-      data: { accountStatus: status },
+      data: { 
+        accountStatus: status,
+        suspendedUntil: status === 'SUSPENDED' ? suspendedUntil : null,
+      },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
         accountStatus: true,
+        suspendedUntil: true,
       },
     });
 
@@ -247,6 +302,32 @@ export const updateUserStatus = async (req: Request, res: Response): Promise<voi
     });
   } catch (error) {
     console.error('Error updating user status:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getAllUsers = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        role: true,
+        accountStatus: true,
+        suspendedUntil: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.status(200).json({
+      message: 'Users fetched successfully',
+      data: users,
+    });
+  } catch (error) {
+    console.error('Error fetching all users:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

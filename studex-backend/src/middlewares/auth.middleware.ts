@@ -31,25 +31,43 @@ import { Request, Response, NextFunction } from 'express';
          return;
        }
 
-       const user = await prisma.user.findUnique({
-         where: { id: decoded.id },
-         select: {
-           id: true,
-           role: true,
-           isDriverVerified: true,
-           accountStatus: true,
-         },
-       });
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.id },
+          select: {
+            id: true,
+            role: true,
+            isDriverVerified: true,
+            accountStatus: true,
+            suspendedUntil: true,
+          },
+        });
 
-       if (!user) {
-         res.status(401).json({ message: 'Unauthorized: User not found' });
-         return;
-       }
+        if (!user) {
+          res.status(401).json({ message: 'Unauthorized: User not found' });
+          return;
+        }
 
-       if (user.accountStatus === 'SUSPENDED' || user.accountStatus === 'BANNED') {
-         res.status(403).json({ message: `Forbidden: Account is ${user.accountStatus.toLowerCase()}` });
-         return;
-       }
+        if (user.accountStatus === 'BANNED') {
+          res.status(403).json({ message: 'Forbidden: Akun Anda telah diblokir secara permanen.' });
+          return;
+        }
+
+        if (user.accountStatus === 'SUSPENDED') {
+          if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+            const remainingMs = user.suspendedUntil.getTime() - Date.now();
+            const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+            res.status(403).json({
+              message: `Forbidden: Akun Anda sedang ditangguhkan. Sisa waktu: ${remainingHours} jam.`,
+            });
+            return;
+          } else {
+            // Auto unsuspend
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { accountStatus: 'ACTIVE', suspendedUntil: null },
+            });
+          }
+        }
 
        req.user = {
          id: user.id,

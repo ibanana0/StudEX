@@ -19,7 +19,8 @@ export type DriverOrderStage =
   | 'at_store'
   | 'delivering'
   | 'waiting_buyer'
-  | 'payment';
+  | 'payment'
+  | 'completed';
 
 export type OrderStatus =
   | 'MENCARI_DRIVER'

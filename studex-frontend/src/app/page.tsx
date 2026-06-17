@@ -170,6 +170,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isLoading || !user) return;
+    if (user.role === 'ADMIN') return;
+
     if (isDriver) {
       loadDriverData();
       const interval = setInterval(loadDriverData, 8000);

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Clock, MessageSquare, Star } from 'lucide-react';
-import { User } from 'lucide-react';
+import { Clock, MessageSquare, Star, User, Flag } from 'lucide-react';
 import type { OrderStatus } from '@/types/order';
 import type { BuyerOrderDriver } from '@/dummy_payload/buyer_order';
 import ChatSheet from '@/components/shared/ChatSheet';
@@ -13,6 +12,7 @@ interface OrderInfoCardProps {
   estimatedTime: string;
   status: OrderStatus;
   driver?: BuyerOrderDriver | null;
+  onReportClick?: () => void;
 }
 
 const STATUS_BADGE: Partial<Record<OrderStatus, { label: string; className: string }>> = {
@@ -30,9 +30,11 @@ export default function OrderInfoCard({
   estimatedTime,
   status,
   driver,
+  onReportClick,
 }: OrderInfoCardProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const badge = STATUS_BADGE[status];
+  const isCompleted = status === 'COMPLETED';
 
   return (
     <>
@@ -86,14 +88,33 @@ export default function OrderInfoCard({
               </div>
             </div>
 
-            {/* Chat button */}
-            <button
-              type="button"
-              onClick={() => setIsChatOpen(true)}
-              className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center shrink-0 hover:bg-gray-50 transition-colors"
-            >
-              <MessageSquare className="w-5 h-5 text-primary" />
-            </button>
+            {/* Action buttons wrapper */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Chat button */}
+              <button
+                type="button"
+                disabled={isCompleted}
+                onClick={() => !isCompleted && setIsChatOpen(true)}
+                className={`w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors ${
+                  isCompleted ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-100' : ''
+                }`}
+                title={isCompleted ? 'Pesanan selesai, chat dinonaktifkan' : 'Hubungi Driver'}
+              >
+                <MessageSquare className={`w-5 h-5 ${isCompleted ? 'text-gray-400' : 'text-primary'}`} />
+              </button>
+
+              {/* Report button */}
+              {onReportClick && (
+                <button
+                  type="button"
+                  onClick={onReportClick}
+                  className="w-10 h-10 rounded-xl border border-red-200 flex items-center justify-center hover:bg-red-50 transition-colors"
+                  title="Laporkan Driver"
+                >
+                  <Flag className="w-5 h-5 text-red-500" />
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-3 px-4 py-4 bg-gray-50/50 text-gray-500 text-sm">

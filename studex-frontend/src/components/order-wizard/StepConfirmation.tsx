@@ -72,9 +72,9 @@ export default function StepConfirmation({ values }: StepConfirmationProps) {
 
       {/* P2P Payment notice */}
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-1.5">
-        <p className="text-sm font-semibold text-foreground">Pembayaran P2P</p>
+        <p className="text-sm font-semibold text-foreground">Pembayaran</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Pembayaran dilakukan secara langsung (face-to-face) dengan driver menggunakan QRIS saat barang diantar. Kesepakatan harga di luar sistem.
+          Pembayaran dilakukan secara langsung (face-to-face) dengan driver menggunakan QRIS saat barang diantar.
         </p>
       </div>
     </div>

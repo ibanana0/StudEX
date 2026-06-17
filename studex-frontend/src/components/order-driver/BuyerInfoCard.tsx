@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MapPin, Map, MessageSquare } from 'lucide-react';
+import { MapPin, Map, MessageSquare, Flag } from 'lucide-react';
 import ChatSheet from '@/components/shared/ChatSheet';
 
 interface BuyerInfoCardProps {
@@ -10,6 +10,8 @@ interface BuyerInfoCardProps {
   deliveryAddress: string;
   deliveryLat: number;
   deliveryLng: number;
+  onReportClick?: () => void;
+  isCompleted?: boolean;
 }
 
 export default function BuyerInfoCard({
@@ -18,6 +20,8 @@ export default function BuyerInfoCard({
   deliveryAddress,
   deliveryLat,
   deliveryLng,
+  onReportClick,
+  isCompleted = false,
 }: BuyerInfoCardProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const initial = buyerName.charAt(0).toUpperCase();
@@ -34,20 +38,39 @@ export default function BuyerInfoCard({
               {buyerName}
             </p>
           </div>
-
+ 
           {/* Avatar */}
           <div className="w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
             <span className="text-white font-bold text-base leading-none">{initial}</span>
           </div>
+ 
+          {/* Action buttons wrapper */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Chat button — opens ChatSheet */}
+            <button
+              type="button"
+              disabled={isCompleted}
+              onClick={() => !isCompleted && setIsChatOpen(true)}
+              className={`w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors ${
+                isCompleted ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-100' : ''
+              }`}
+              title={isCompleted ? 'Pesanan selesai, chat dinonaktifkan' : 'Hubungi Pemesan'}
+            >
+              <MessageSquare className={`w-5 h-5 ${isCompleted ? 'text-gray-400' : 'text-primary'}`} />
+            </button>
 
-          {/* Chat button — opens ChatSheet */}
-          <button
-            type="button"
-            onClick={() => setIsChatOpen(true)}
-            className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center shrink-0 hover:bg-gray-50 transition-colors"
-          >
-            <MessageSquare className="w-5 h-5 text-primary" />
-          </button>
+            {/* Report button */}
+            {onReportClick && (
+              <button
+                type="button"
+                onClick={onReportClick}
+                className="w-10 h-10 rounded-xl border border-red-200 flex items-center justify-center hover:bg-red-50 transition-colors"
+                title="Laporkan Pemesan"
+              >
+                <Flag className="w-5 h-5 text-red-500" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Delivery address */}
