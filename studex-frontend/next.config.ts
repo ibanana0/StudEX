@@ -7,7 +7,6 @@ const BACKEND_ORIGIN =
   process.env.BACKEND_ORIGIN ?? "http://104.198.6.169:3001";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
   images: {
     remotePatterns: [
       {
