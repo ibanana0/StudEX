@@ -1,7 +1,16 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api`,
+  // Empty/unset NEXT_PUBLIC_API_URL -> relative `/api`, proxied to backend via
+  // next.config rewrite (avoids HTTPS->HTTP mixed content in prod). Local dev
+  // sets it to http://localhost:3001 for a direct call.
+  baseURL: (() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl || apiUrl === 'undefined') {
+      return '/api';
+    }
+    return `${apiUrl}/api`;
+  })(),
   headers: { 'Content-Type': 'application/json' },
 });
 
