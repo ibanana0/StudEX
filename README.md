@@ -476,7 +476,7 @@ make db-migrate
 Proyek ini dibuat sebagai tugas mata kuliah **Cloud Computing**.
 
 | **Nama** | **GitHub** |
-|---|---|---|
+|---|---|
 | adika | [@ibanana0](https://github.com/ibanana0) |
 | Arfer0030 | [@Arfer0030](https://github.com/Arfer0030) |
 | AlvisChrs | [@AlvisChrs](https://github.com/AlvisChrs) |
